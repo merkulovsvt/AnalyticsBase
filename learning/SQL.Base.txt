@@ -1,0 +1,1099 @@
+----
+Base
+----
+
+Можно выделить отдельный текст и выполнить только его  (нажать Execute)
+В SQL нет прямого способа менять порядок колонок
+Команды можно задавать, как с маленькой, так и с заглавной буквы, но ключевые слова по соглашению нужно прописывать с заглавной, а таблицы и колонки с маленькой буквы
+
+string в одинарных кавычках
+
+Можно делать неограниченное количество команд через запятую.
+Пример:
+ALTER TABLE <table.name>
+ADD COLUMN ...,
+ADD COLUMN ...,
+...
+
+Автоинкремент — это функция в базах данных, которая автоматически генерирует уникальный номер для каждой новой строки, добавленной в таблицу
+
+Функция date_part('month', data_date); - выведет номер месяца из data_date
+TO_CHAR() - функция перевод всего в строку
+
+Query Tool - среда, где пишем код
+Query == Запрос
+
+DDL – Data Definition Language (язык описания данных)
+- CREATE TABLE <table.name> – создать таблицу
+- ALTER TABLE <table.name> – изменить таблице
+  - ADD COLUMN <column.name> data_type 
+  - RENAME TO <table.name.new>
+  - RENAME <colum.name.old> TO <column.name.new>
+  - ALTER COLUMN <column.name> SET DATA TYPE data_type
+- DROP TABLE <table.name> – удалить таблицу
+- TRUNCATE TABLE <table.name> – удалить все данные, но оставить структуру (нельзя резать таблицы, на которые есть ссылки [внешний ключ] в других таблицах)
+
+DML – Data Manipulation Language (язык манипулирования данными), который содержит следующие конструкции:
+- SELECT – выборка данных
+- INSERT – вставка новых данных
+- UPDATE – обновление данных
+- DELETE – удаление данных
+- MERGE – слияние данных
+
+-----------------------
+Математические операции:
+-----------------------
+
+база (+, -, ...) как везде
+^ - степень
+|/ - квадратный корень
+и куча других операторов и функций
+ 
+SELECT <column1.name> * <column2.name> - выведет столбец из произведений элементов
+FROM <table.name>
+
+DROP DATABASE <database.name> - удалить базу данных
+CREATE DATABASE <database.name> - создать базу данных
+    with ...
+CREATE TABLE <table.name> - создать таблицу
+(
+    data_id integer PRIMARY KEY, - в каждой строке int разный
+    <column1.name> varchar(128) NOT NULL, - если кто-то попытается передать NULL, то Postgres выдаст ошибку
+    <column2.name> text NOT NULL
+);
+Далее жмём "execute" - молния
+DROP TABLE <table.name>; - удалитьь таблицу
+DROP TABLE IF EXISTS <table.name>; - удалить, если существует
+
+
+INSERT INTO <table.name> VALUES (1, "War and piece", "01231231")
+или
+INSERT INTO <table.name> 
+VALUES 
+(1, "War and piece", "01231231"),
+(2, "...", "3123123123");
+
+";" нужна, чтобы INSERT INTO можно было делать в том же коде для других таблиц
+
+"....""....." - "" экранирование => парсер поймёт, что одна из кавычек лежит внутри двух основных
+
+SELECT * (* означает выбрать все столбцы) - выведет всю табличку
+FROM <table.name>
+
+------------
+ONE TO MANY: (самое популярное)
+------------
+Пример: издатель - книги
+
+ALTER TABLE <table1.name> - добавить в конец
+ADD COLUMN fk_publisher_id int FOREIGN KEY;
+
+ALTER TABLE <table1.name>
+ADD CONSTRAINT <column.name> - добавить ограничение
+FOREIGN KEY(fk_publisher_id) REFERENCES <table2.name>(publisher_id);
+
+Можно задать зависимость при создании таблички:
+CREATE TABLE book
+(
+    book_id integer PRIMARY KEY,
+    title text NOT NULL,
+    fk_publisher_id integer REFERENCES publisher(publisher_id) NOT NULL
+);
+INSERT INTO book
+VALUES
+(1, "WASD", 1),
+(2, "QWER", 1),
+...
+
+------------
+ONE TO ONE:
+------------
+Пример: человек - паспорт
+
+CREATE TABLE person
+(
+    person_id int PRIMARY KEY,
+    first_name varchar(64) NOT NUL,
+    last_name varchar(64) NOT NULL
+);
+
+CREATE TABLE passport
+(
+    passport_id int PRIMARY KEY,
+    serial_number int NOT NUL,
+    fk_passport_person int UNIQUE REFERENCES person(person_id) - UNIQUE гарантирует отсутствие дубликатов
+);
+
+------------
+MANY TO MANY:
+------------
+Пример: авторы статей - статьи
+
+CREATE TABLE book_author
+(
+    book_id int REFERENCES book(book_id)
+    authortr_id int REFERENCES author(author_id)
+    CONSTRAINT book_author_pkey PRIMARY KEY (book_id, author_id) - композитный ключ (состояющий из более чем одной колонки)
+)
+
+что PRIMARY KEY, что FOREIGN KEY являются ограничениями (CONSTRAINT)
+
+----------------------
+Базовые SELECT запросы:
+----------------------
+
+SELECT работает после FROM и WHERE
+
+SELECT * (* - все колонки и все строки)
+FROM <table.name>
+ 
+SELECT <column1.name>, <column2.name>, ... - способ выбрать отдельные столбцы
+
+SELECT <table1.name>.<column1.name>, ... - способ выбрать столбец <column1.name> из <table1.name>
+
+SELECT <column1.name> * <column2.name> - выведет столбец из произведения элементов столбцов
+
+SELECT DISTINCT <column1.name> - выводит только уникальные значения
+
+SELECT DISTINCT <column1.name>, <column2.name> - выведет уникальные сочетания
+
+SELECT COUNT(*) - посчитает общее количество строк
+
+SELECT COUNT(DISTINCT <column.name>) - посчитает уникальное количество значений в данном столбце
+
+SELECT <column1.name> || ' ' || <column2.name> == SELECT CONCAT(<column1.name>,' ',<column2.name>)
+Выведет столбец с данными из этих столбцов через пробел (название тоже будет названием столбцов через пробел)
+
+------------------
+Фильтрация - WHERE
+------------------
+
+SELECT *
+FROM <table.name>
+WHERE condition (<column.name> > 123)
+
+a=b/a>=b/a<>b(a!=b)/...
+
+WHERE condition1 AND/OR condition2
+
+WHERE <column.name> BETWEEN data1 and data2 - оператор предполагает включение (нестрого)
+
+WHERE <column.name> == data1 OR <column.name> == data2 OR ... == WHERE <column1.name> IN (data1, data2, ...)
+
+WHERE <column.name> NOT IN (data1, data2, ...)
+
+WHERE <column.name> IS/IS NOT NULL
+
+-----------------
+Сортировка Запроса
+-----------------
+
+SELECT DISTINCT <column.name>
+FROM <table.name>
+ORDER BY <column.name> ASC/DESC (ascending/descending = по возрастанию/ по убыванию) 
+По умолчанию, те без ASC/DESC, стоит ASC
+
+SELECT DISTINCT <column1.name>, <column2.name> - не будет дублекатов пар
+FROM <table.name>
+ORDER BY <column1.name> DESC, <column2.name> DESC
+
+-----------------
+Скалярные функции
+-----------------
+
+SELECT MIN(<column.name>) - выведет минимальное значение при условии condition1
+FROM <table.name>
+WHERE condition 1
+
+MIN/MAX/AVG/SUM
+
+-------------
+Оператор LIKE
+-------------
+
+% - placeholder (заполнитель) означающий 0, 1 и более символов
+_ - ровно 1 любой символ
+
+SELECT <column.name>
+FROM <table.name>
+WHERE <column.name> LIKE '%a_'
+
+LIKE 'U%' - строки, начинающиеся с U
+LIKE '%U' - строки, оканчивающиеся на U
+
+--------------
+Оператор LIMIT
+--------------
+
+Идёт всегда последним!
+
+SELECT <column.name>
+FROM <table.name>
+LIMIT 15 - выведет первые 15 элементов <column.name>
+
+-----------
+Группировка
+-----------
+
+Оператор GROUP BY определяет, как строки будут группироваться.
+Например, сгруппируем товары по производителю
+
+SELECT Manufacturer, COUNT(*) AS ModelsCount
+FROM Products
+GROUP BY Manufacturer
+
+Первый столбец в выражении SELECT - Manufacturer представляет название группы, а второй столбец - ModelsCount представляет результат функции Count, которая вычисляет количество строк в группе.
+
+При наличии WHERE и ORDER BY стоит между ними!
+
+SELECT <column1.name>, <column2.name>
+FROM <table.name>
+WHERE condition1
+GROUP BY <column1.name>, <column2.name>
+ORDER BY <column1.name>
+
+--------------
+Постфильтрация
+--------------
+Пример:
+Сгруппировав и получив данные надо сделать дальнейшую обработку по группам
+
+SELECT category_id, SUM(unit_price * units_in_stock)
+FROM products
+WHERE discontinued <> 1
+GROUP BY category_id
+HAVING SUM(unit_price * units_in_stock) > 5000 - постфильтрация
+ORDER BY SUM(unit_price * units_in_stock) DESC
+
+----------------------
+Операции на множествах
+----------------------
+
+SELECT <column1.name>
+FROM <table1.name>
+UNION - объединение (удаляет дубликаты)
+SELECT <column2.name>
+FROM <table2.name>
+
+UNION ALL - объединение (не удаляет дубликаты)
+
+INTERSECT - пересечение
+
+EXCEPT - исключение (вернёт то, что есть в column1, но нет в column2 + удаляет дубликаты)
+
+EXCEPT ALL - EXCEPT + разница того, что есть в column2, но встречается в column1 чаще (10 элементов в column1 и 6 элементов в column2 => в итоге будет 4 элемента) + не удаляет дубликаты
+
+---------------
+Соединения JOIN
+---------------
+
+Если нет соответствия ставится NULL
+
+INNER (внутренний) JOIN - попадает "пересечение" по ключу левой и правой таблицы
+LEFT OUTER (левый внешний) JOIN - из левой таблицы попадают абсолютно все записи (совместно с правой и без неё) [самое часто используемое из внешних соединений]
+RIGHT OUTER (правый внешний) JOIN - из правой таблицы попадают абсолютно все записи (совместно с левой и без неё)
+FULL OUTER (полный внешний) JOIN - попадает "объединение" по ключу левой и правой таблицы (объединение LEFT JOIN и RIGHT JOIN)
+CROSS (декартово произведение) JOIN - каждому элементу из правой соотвествует каждый из левой (NxM)
+SELF (рекурсивное) JOIN - присоединить таблицу к самой себе (модель, не оператор)
+NATURAL (натуральное) JOIN - то же самое, что INNER JOIN, но соединение происходит по всем столбцам с одинаковым названием
+
+после ... JOIN пишем имя таблицы, с которой делаем JOIN, а далее по каким параметрам
+
+Можно использовать несколько ... JOIN подряд:
+... JOIN ...
+... JOIN ... 
+
+Можно делать так:
+SELECT <column1.name>
+FROM <table1.name>       
+JOIN <table2.name> USING(<column2.name>)
+JOIN <table3.name> USING(<column3.name>) 
+Причем column2 есть только в table1 и table2, а column3 есть только в table2 и table3
+
+----------
+INNER JOIN
+----------
+
+SELECT product_name, suppliers.company_name, units_in_stock
+FROM products
+INNER JOIN suppliers ON products.supplier_id = suppliers.supplier_id
+
+INNER JOIN == JOIN
+
+----------
+OUTER JOIN
+----------
+
+Если всем ключам есть соответствие, то LEFT JOIN == INNER JOIN
+
+SELECT ...
+FROM ...
+LEFT/RIGHT/FULL JOIN ...
+
+----------
+CROSS JOIN
+----------
+
+При CROSS JOIN часть с ON опускается
+
+SELECT ...
+FROM ...
+CROSS JOIN <table.name>
+
+----------
+SELF JOIN
+----------
+
+Чаще всего нужен для того, чтобы построить иерархию
+
+Пример:
+CREATE TABLE employee (
+	employee_id int PRIMARY KEY,
+	first_name varchar(256) NOT NULL,
+	last_name varchar(256) NOT NULL,
+	manager_id int,
+	FOREIGN KEY (manager_id) REFERENCES employee(employee_id); - указатель на то, что SELF JOIN возможен
+);
+
+INSERT INTO employee
+(employee_id, first_name, last_name, manager_id)
+VALUES 
+(1, 'Windy', 'Hays', NULL),
+(2, 'Ava', 'Christensen', 1),
+(3, 'Anna', 'Reeves', 2),
+
+SELECT e.first_name || ' ' || e.last_name AS employee,
+	   m.first_name || ' ' || m.last_name AS manager
+FROM employee e
+LEFT JOIN employee m ON m.employee_id = e.manager_id
+ORDER BY manager;
+
+Выведет слева ФИ всех сотрудников, а справа ФИ менеджера
+
+----------
+NATURAL JOIN
+----------
+
+При NATURAL JOIN часть с ON опускается
+
+SELECT <column.name>
+FROM <table1.name>
+NATURAL JOIN <table2.name>
+
+ДЕРЬМО в общем случае!
+
+-----
+USING
+-----
+
+SELECT <column.name>
+FROM <table1.name>
+JOIN <table2.name> ON <table1.name>.<column.name> = <table2.name>.<column.name> 
+или можно написать так:
+JOIN <table2.name> USING(<column.name>), те внутри ключевого слова USING() мы пишем название столбца, по которому производим соединение
+
+-----------------
+Псевдоним (Alias)
+-----------------
+
+SELECT <column1.name> AS Data1, COUNT(<column2.name> AS Data2
+FROM <table.name>
+JOIN <column2.name> AS Data3 ON Data1.id = Data3.id - так тоже можно
+
+В итоге название столбца с данными из <column1.name> будет называться "Data1" и к столбцу <column1.name> можно будет обращаться как к Data1
+
+Нельзя использовать в WHERE и HAVING
+Можно использовать в GROUP BY и ORDER BY (тк происходят после SELECT) и при использовании подзапросов
+
+GROUP BY Data2/ORDER BY Data2
+
+----------
+Подзапросы
+----------
+Зачем нужны?
+- Запросы бывают логически сложными
+- Реализовать запрос в лоб может быть сложно => подзапросы могут помочь
+- Есть задачи, которые без подзапросов не решить
+
+Выведем все компании, которые находятся там же, где и клиенты
+SELECT company_name
+FROM suppliers
+WHERE country is in (SELECT DISTINCT country - это подзапрос
+	             FROM customers)
+
+Можно заменить JOINом
+SELECT company_name
+FROM suppliers
+JOIN customers USING(country)
+
+НО так работает не всегда. Проще говоря надо смотреть по ситуации, когда-то удобнее JOIN, когда-то подзапрос
+
+------------
+WHERE EXISTS
+------------
+
+WHERE EXISTS с подзапросом внутри вощвращает TRUE, если в подзапросе была возвращена хотя бы одна строка
+
+SELECT company_name, contact_name
+FROM costumers
+WHERE EXISTS (SELECT customer_id FROM orders
+              WHERE customer_id = customers.customer_id
+              AND freight BETWEEN 50 AND 100)
+
+Можно писать и так:
+...
+WHERE NOT EXISTS ...
+
+-------
+ANY/ALL
+-------
+
+Операторы ANY и ALL используются с предложением WHERE или HAVING. Оператор ANY возвращает true, если какое-либо из значений подзапроса соответствует условию. Оператор ALL возвращает true, если все значения подзапроса удовлетворяют условию.
+
+SELECT DISTINCT company_name
+FROM customers
+WHERE customer_id = ANY(
+    SELECT customer_id
+    FROM orders
+    JOIN order_details USING(order_id)
+    WHERE quantity > 40
+)
+
+SELECT DISTINCT product_name
+FROM products
+JOIN order_details USING(product_id)
+WHERE quantity > ALL (SELECT AVG(quantity)
+		      FROM order_details
+		      GROUP BY product_id)
+
+-----------------------------------------------------
+DDL – Data Definition Language (язык описания данных)
+-----------------------------------------------------
+- CREATE TABLE <table.name> – создать таблицу
+- ALTER TABLE <table.name> – изменить таблице
+  - ADD COLUMN <column.name> data_type 
+  - RENAME TO <table.name.new>
+  - RENAME <colum.name.old> TO <column.name.new>
+  - ALTER COLUMN <column.name> SET DATA TYPE data_type
+- DROP TABLE <table.name> – удалить таблицу
+- TRUNCATE TABLE <table.name> – удалить все данные, но оставить структуру (нельзя резать таблицы, на которые есть ссылки [внешний ключ] в других таблицах)
+
+Примеры:
+
+CREATE TABLE student(
+  student_id serial NOT NULL, - если кто-то попытается передать NULL, то Postgres выдаст ошибку 
+  first_name varchar(128),
+  last_name varchar(128)
+);
+
+ALTER TABLE student
+ADD COLUMN middle_name varchar(128);
+
+ALTER TABLE student
+RENAME TO student1;
+
+ALTER TABLE student1
+RENAME last_name TO last_name1;
+
+ALTER TABLE student1
+DROP COLUMN last_name1,
+DROP COLUMN middle_name;
+
+ALTER TABLE student1
+ALTER COLUMN first_name SET DATA TYPE varchar(64);
+
+Тут работает автоинкремент:
+INSERT INTO student1 (first_name) - присвоит kolya id = 1 и petya id = 2 автоматически (так работает тип данных serial)
+VALUES
+('kolya'),
+('petya');
+
+TRUNCATE TABLE student1; - после выполнения этого кода и блока insert присвоит kolya id = 3 и petya id = 4.
+Потому что TRUNCATE по умолчанию имеет CONTINUE IDENTITY [не рестартит id (identity)]. Для того, чтобы рестартить нужно писать так:
+TRUNCATE TABLE student1 RESTART IDENTITY; - при INSERT получим kolya id = 1 и petya id = 2.
+
+DROP TABLE student1;
+
+------------------------
+Ограничения (CONSTRAINT)
+------------------------
+SQL ограничения используются для указания правил для данных в таблице.
+
+Ограничения используются для ограничения типа данных, которые могут быть помещены в таблицу. Это обеспечивает точность и достоверность данных в таблице. Если существует какое-либо нарушение между ограничением и действием данных, действие прерывается.
+
+Ограничения могут быть на уровне столбцов или таблиц. Ограничения уровня столбца применяются к столбцу, а ограничения уровня таблицы ко всей таблице.
+
+В SQL обычно используются следующие ограничения:
+
+NOT NULL - Гарантирует, что столбец не может иметь нулевое значение
+UNIQUE - Гарантирует, что все значения в столбце будут разными
+PRIMARY KEY - Комбинация NOT NULL и UNIQUE. Уникально идентифицирует каждую строку в таблице.
+FOREIGN KEY - Однозначно идентифицирует строку/запись в другой таблице
+CHECK - Гарантирует, что все значения в столбце удовлетворяют определенному условию
+DEFAULT - Задает значение по умолчанию для столбца, если значение не указано
+INDEX - Используется для быстрого создания и извлечения данных из базы данных
+
+-----------
+PRIMARY KEY
+-----------
+Уникально идентифицирует каждую строку в таблице, но в таблице может быть только 1, в отличие от UNIQUE NOT NULL.
+
+CREATE TABLE chair
+(
+	chair_id serial PRIMARY KEY, - в данном случае название ограничения задано автоматически 'chair_chair_id_key'
+	chair_name varchar,
+);
+
+ИЛИ
+
+CREATE TABLE chair
+(
+	chair_id serial,
+	chair_name varchar,
+	CONSTRAINT PK_char_chair_id PRIMARY KEY(chair_id) - в данном случае мы сами задали название ограничения 'PK_char_chair_id'
+);
+
+Cпособ вывети все ограничения по столбцу 'chair_id'
+SELECT constraint_name
+FROM information_schema.key_column_usage
+WHERE table_name = 'chair'
+  AND table_schema = 'public'
+  AND column_name = 'chair_id';
+
+Удалить ограничение можно так:
+ALTER TABLE chair
+DROP CONSTRAINT chair_chair_id_key
+
+Задать ограничение можно так:
+ALTER TABLE chair
+ADD PRIMARY KEY(chair_id);
+
+ИЛИ
+
+ALTER TABLE chair
+ADD CONSTRAINT PK_char_chair_id
+PRIMARY KEY(chair_id)
+
+-----------
+FOREIGN KEY
+-----------
+
+Наличие FOREIGN KEY накладывает ограничения
+
+CREATE TABLE book
+(
+	book_id serial,
+	book_name varchar,
+        publisher_id int,	
+	CONSTRAINT PK_book_book_id PRIMARY KEY(book_id)
+);
+
+ALTER TABLE BOOK
+ADD CONSTRAINT FK_books_publisher FOREIGN KEY(publisher_id) REFERENCES publisher(publisher_id); - при попытке вставить книгу с publisher_id, не существующем в publisher, выдаст ошибку
+
+ИЛИ
+
+CREATE TABLE book
+(
+	book_id serial,
+	book_name varchar,
+        publisher_id int,	
+	CONSTRAINT PK_book_book_id PRIMARY KEY(book_id),
+	CONSTRAINT FK_books_publisher FOREIGN KEY(publisher_id) REFERENCES publisher(publisher_id)
+);
+
+ИЛИ
+
+CREATE TABLE book
+(
+	book_id serial,
+	book_name varchar,
+        publisher_id int,	
+	CONSTRAINT PK_book_book_id PRIMARY KEY(book_id),
+	CONSTRAINT FK_books_publisher FOREIGN KEY(publisher_id) REFERENCES publisher(publisher_id)
+);
+
+ALTER TABLE BOOK
+DROP CONSTRAINT FK_books_publisher;
+
+-----
+CHECK
+-----
+
+CHECK используется для ограничения диапазона значений, который может быть помещен в столбец.
+
+Если вы определяете контрольное ограничение для одного столбца, оно допускает только определенные значения для этого столбца.
+
+Если вы определяете контрольное ограничение для таблицы, оно может ограничивать значения в определенных столбцах на основе значений в других столбцах строки.
+
+ALTER TABLE book
+ADD COLUMN price decimal CONSTRAINT CHK_book_price CHECK (price >= 0); - сервер не даст записать данные, если не будет выполнено условие
+
+Внутри скобок может быть любое условие
+
+-------
+DEFAULT
+-------
+
+Ограничение DEFAULT используется для предоставления значения по умолчанию для столбца.
+Значение DEFAULT будет добавлено ко всем новым записям, если другое значение не указано.
+
+CREATE TABLE customer
+(
+	customer_id serial,
+	full_name text,
+	status char DEFAULT 'r',
+
+	CONSTRAINT PK_customer_customer_id PRIMARY KEY(customer_id),
+	CONSTRAINT CHK_customer_status CHECK(status = 'r' OR status = 'p')
+)
+
+Никаких CONSTRAINT для DEFAULT не нужно
+
+ALTER TABLE customer
+ALTER COLUMN status DROP DEFAULT;
+
+ALTER TABLE customer
+ALTER COLUMN status SET DEFAULT 'r';
+
+---------------------------
+Последовательности SEQUENCE
+---------------------------
+
+CREATE SEQUENCE seq1; - создать счётчик
+Первое значение всегда 1 (START WITH 1 - по умолчанию)ы
+
+SELECT nextval('seq1'); - возвращает следующее значение последовательности
+SELECT currval('seq1'); - возвращает текущее значение последовательности
+SELECT lastval(); - не принимает аргумент и возвращает последнее значенеи, сгенированное какой-либо из последовательностей из данной сессии
+
+SELECT setval('seq1', 16, \true\false) - ('seq.name>', start_param, \true\false);
+Устанавливает для последовательности заданное значение поля
+
+При /true - nextval('seq1') будет следующее число относительно заданного в setval
+true по умолчанию
+При false - nextval('seq1') будет число заданное в setval
+
+CREATE SEQUENCE IF NOT EXISTS seq2 INCREMENT 16; - шаг 16	
+SELECT nextval('seq2'); - выведет 17 
+
+CREATE SEQUENCE IF NOT EXISTS seq3 
+INCREMENT 16 - шаг 16	
+MINVALUE 0 - минимум 0	(при переходе выводит ошибку)
+MAXVALUE 160 - максимум 160 (при переходе выводит ошибку)
+START WITH 0 - начинает с 0
+
+SELECT nextval('seq3');
+
+ALTER SEQUENCE seq3 RENAME TO seq4; - переименовать последовательность
+ALTER SEQUENCE seq4 RESTART WITH 16; - запустит заново со START WITH 16
+
+DROP SEQUENCE seq4; - удаляет последовательность
+
+-----------------------------------
+Последовательности и таблицы SERIAL
+-----------------------------------
+
+В основе этого типа лежит тип INTEGER, однако значением по умолчанию для величин этого типа является не NULL, а следующее целое число. Таким образом, если добавлять записи в таблицу, не указывая для полей типа SERIAL, эти значения будут присваиваться автоматически как порядковые целые числа. На значения типа SERIAL накладывается ещё одно ограничение — они не могут быть NULL.
+
+SERIAL похуй на то, что добавляется
+
+CREATE TABLE public.book
+(
+    book_id int NOT NULL,
+    title text NOT NULL,
+    isbn varchar(32) NOT NULL,
+    publisher_id int NOT NULL,
+	  
+    CONSTRAINT PK_book_book_id PRIMARY KEY(book_id)
+);
+
+CREATE SEQUENCE IF NOT EXISTS book_book_id_seq
+START WITH 1 OWNED BY book.book_id;
+
+ALTER TABLE book
+ALTER COLUMN book_id SET DEFAULT nextval('book_book_id_seq'); - установить значения по умолчанию. ОБЯЗАТЕЛЬНО!, иначе будет ошикба при INSERT
+
+INSERT INTO book (title, isbn, publisher_id)
+VALUES ('title', 'isbn', 1); - на место book_id будет вставлена 1 и +1 каждый раз (автоинкремент)
+
+^^^таким образом работает псевдоserial^^^
+Есть проблема при ручной добавке какого-либо book_id. Будет ошибка, ведь программа упрётся в этот номер в какой-то момент и не сможет его перейти ("Ключ ... =(3) уже существует". Проще говоря, не сонхранизированна с реальностью.
+
+Есть решение из PostgreSQL 10 версии. Это своего рода SERIAL++ (другие СУБД поддерживают подобный синтаксис):
+
+CREATE TABLE book
+(
+    book_id int GENERATED ALWAYS/(BY DEFAULT - как serial позволяет лезть своими руками) AS IDENTITY (START WIN 10 INCREMENT BY 20 и другие опции можно писать) NOT NULL,
+    title text NOT NULL,
+    isbn varchar(32) NOT NULL,
+    publisher_id int NOT NULL,
+	  
+    CONSTRAINT PK_book_book_id PRIMARY KEY(book_id)
+);
+
+Ограничение можно обойти так:
+
+INSERT INTO book
+OVERRIDING SYSTEM
+VALUES (3, 'wasd', 'wasd', 1)
+
+------
+INSERT
+------
+
+INSERT INTO <table.name>
+VALUES () - вставляем во всю таблицу
+
+INSERT INTO <table.name> (<column1.name>, ...)
+VALUES () - вставляем в конкретные столбцы таблицы
+
+INSERT INTO <table.name>
+VALUES 
+('data1'),
+('data2') - можно вставлять больше 1 строчки данных за раз
+
+SELECT *
+INTO best_authors - создаст новую таблицу best_authors с данными из author при условии rating > 4
+FROM author
+WHERE rating > 4
+
+INSERT INTO best_authors - вставит данные из author в best_authors при условии rating < 4
+SELECT *
+FROM author
+WHERE rating < 4
+
+-------------------------
+UPDATE, DELETE, RETURNING
+-------------------------
+
+UPDATE - меняет значения, а DELETE - удаляет
+
+UPDATE author
+SET full_name = 'Big Man', rating = 5 - изменил значения full_name и rating в строке, где author_id = 3
+WHERE author_id = 3;
+
+DELETE FROM author
+WHERE rating < 4.5; - удалили все строки, где rating < 4.5
+
+DELETE FROM author; - удалит все строки (оставляет логи)
+
+TRUNCATE TABLE author; - удаляет все стоки (не оставляет логи)
+
+INSERT INTO book
+VALUES ('data')
+RETURNING * - выведет всё, что мы вставили
+
+INSERT INTO book (book_id)
+VALUES ('data')
+RETURNING book_id; - выведет все book_id, что мы вставили
+
+UPDATE author
+SET full_name = 'Big Man', rating = 5
+WHERE author_id = 3
+RETURNING *; - выведет всё, что мы обновили
+
+DELETE FROM author
+WHERE author_id = 3
+RETURNING *; - выведет всё, что мы удалили
+
+------------
+Нормализация
+------------
+Процесс минимизации избыточности отношения (приведение к НФ)
+Нормальная Форма - свойство отношения, характеризующее его с точки зрения избыточности
+
+1 Нормальная форма
+- нет строк-дубликатов
+- все атрибуты простых типов данных (int, varchar, ... [не массивы])
+- все значения скалярные (одно значение в поле)
+
+2 Нормальная форма
+- удовлетворяет 1НФ
+- есть первичный ключ - можно делать композитный ключ (id1, id2)
+- все атрибуты (поля) описывают первичный ключ целиком, а не лишь его часть:
+(author_id, book_id, author_name, book_title) - дерьмо, ведь author_name описывает только один ключ author_id, 
+поэтому надо разбить данную таблицу на 3, (author_id, author_name), (book_id, book_title), (author_id, book_id)
+
+3 Нормальная форма
+- удовлетворяет 2НФ
+- нет зависимостей одних неключевых атрибутов от других (все атрибуты зависят от первичного ключа)
+
+--------------------
+Предстваления (view)
+--------------------
+- View - Сохранённый запрос в виде объекта БД(виртуальная таблица)
+- тк View объект, то его можно увидеть в Schemas - Public - Views
+- К View можно делать обычный SELECT
+- View можно соединять и тд (JOIN,...)
+- Производительность такая же, как и у обычной таблицы
+- Позволять делать кеширование с помощью материализации
+- Позволяет сокращать сложные запросы
+- Позволяет подменить реальную таблицы
+- Позволяет создавать виртуальные таблицы, соединяющие несколько таблиц
+- Позволяет скрыть логику агрегации данных при работе через ORM
+- Позволяет скрыть информацию(строки/столбцы) от групп пользователей
+
+Виды:
+- Временные
+- Рекурсивные
+- Обновляемые
+- Материализуемые
+
+CREATE VIEW view_name AS
+SELECT select_statement
+
+- Можно только добавлять новые столбцы
+  - нельзя удалять существующие
+  - нельзя поменять имена стобцов
+  - нельзя поменять порядок следования стобцов
+CREATE OR REPLACE VIEW view_name AS
+SELECT select_statement;
+
+- Можно переименовать сам View
+ALTER VIEW view_name RENAME TO new_view_name;
+
+- Можно удалять View
+DROP VIEW [IF EXISTS] view_name;
+
+Модифицировать данные через view можно, если:
+- Только одна таблица в FROM
+- Нет DISTINCT, GROUP BY, HAVING, UNION, INTERSECT, EXCEPT, LIMIT
+- Нет оконных функций MIN, MAX, SUM, COUNT, AVG
+- WHERE не под запретом
+
+CREATE VIEW products_suppliers_categories AS
+SELECT product_name, quantity_per_unit, unit_price, units_in_stock,
+company_name, contact_name, phone,
+category_name, description
+FROM products
+JOIN suppliers USING (supplier_id)
+JOIN categories USING (category_id);
+
+Выведет все строки, где unit_price > 20:
+SELECT *
+FROM products_suppliers_categories
+WHERE unit_price > 20;
+
+-------------------------
+Обновляемые представления
+-------------------------
+
+Оригинальная таблица:
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT column1.name, column2.name
+FROM orders
+WHERE freight > 50;
+
+После выполнения данного кода в heavy_orders произойдёт изменение (freight > 100) без каких либо ошибок:
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT column1.name, column2.name
+FROM orders
+WHERE freight > 100;
+
+В таком случае будет ошибка:
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT column1.name, column3.name
+FROM orders
+WHERE freight > 50;
+
+Два запроса снизу смогут "обмануть" систему, но придётся DROPать new_view:
+ALTER VIEW heavy_orders RENAME TO new_view;
+
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT column1.name, column3.name
+FROM orders
+WHERE freight > 50;
+
+Можно делать INSERT через VIEW (вставится в оригинальную таблицу):
+INSERT INTO heavy_orders
+VALUES (11078, 'VINET', 5, '2019-12-10', '2019-12-15', '2019-12-14', 1, 120, 
+		'Hanari Carnes', 'Rua do Paco', 'Bern', NULL, 3012, 'Switzerland');
+
+Можно удалять строки, что есть в VIEW (при наличии в оригинальной, но отсутствии во VIEW будет ошибка или ничего не удалится):
+DELETE FROM heavy_orders WHERE freight < 100.25;
+
+----------------------
+CHECK в представлениях
+----------------------
+
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT * 
+FROM orders
+WHERE freight > 100;
+
+У нас поулчится вставить эти неподходящие под фильтр freight > 100 данные через heavy_orders. Они будут в оригиналной таблице, но в heavy_orders их не будет.
+INSERT INTO heavy_orders
+VALUES(11900, 'FOLIG', 1, '2000-01-01', '2000-01-05', '2000-01-04', 1, 80, 'Folies gourmandes', '184, chaussee de Tournai',
+	   'Lille', NULL, 59000, 'FRANCE'); - в данном случае freight = 80
+
+Можно модифицировать VIEW так, чтобы фильтр во VIEW учитывался при вставке:
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT * 
+FROM orders
+WHERE freight > 100
+WITH LOCAL CHECK OPTION; - сервер будет проверять соответствие вставляемых данных фильтру VIEW. 
+ИЛИ
+WITH CASCADE CHECK OPTION; - эта проверка будет и для подлежащих view (детей)
+
+---------
+CASE WHEN
+---------
+
+CASE
+  WHEN condition_1 THEN result_1 - if
+  WHEN condition_2 THEN result_2 - elif
+ [WHEN...]
+ [ELSE result_n]
+END
+
+- condition - условие, возвращающее bool
+- result - результат или действие в случае с PL\pgSQL
+
+В данном случае будет дополнительный столбец amount со значениями, соответствующими условиям
+SELECT product_name, unit_price, units_in_stock,
+CASE WHEN units_in_stock >= 100 THEN 'lots of'
+	 WHEN units_in_stock >= 50 THEN 'average'
+	 WHEN units_in_stock < 50 THEN 'low number'
+	 ELSE 'unknown'
+END AS amount
+FROM products;
+
+-----------------
+COALESCE & NULLIF
+-----------------
+
+COALESCE(arg1, arg2, ...); - принимает N аргументов и возвращает первый !=NULL элемент. В случае, если все аргументы NULL, вернёт NULL.
+
+SELECT order_id, order_date, COALESCE(ship_region, 'unknown') AS ship_region - если ship_region == NULL, будет выведено 'unknown'.
+FROM orders
+LIMIT 10;
+
+NULLIF(arg1, arg2); - сравнивает 2 аргумента и если они равны возвращает NULL, иначе возвращает arg1.
+
+SELECT contact_name, COALESCE(NULLIF(city, ''), 'Unknown') as city - Если city == '', то будет 'Unknown', иначе будет city.
+FROM customers;
+
+-----------
+Функции SQL
+-----------
+Объект БД, принимающий аргументы и возвращающий результат
+
+- Могут содержать SELECT, INSERT, UPDATE, DELETE, ...
+- Не могут содержать COMMIT, SAVEPOINT, VACUUM, ...
+
+Делятся на:
+- SQL-функции
+- Процедурные (PL/pgSQL)
+- Серверные функции (написанные на С) - редко
+- Собственные С-фукнции - редко
+
+CREATE FUNCTION func_name([arg1,arg2,...]) RETURNS data_type AS $$ 	 
+--logic
+$$ LANGUAGE lang (SQL/pgSQL)
+
+$$ - открывают и закрывают тело функции (до 8 версии использовали кавычки)
+
+CREATE OR REPLACE func_name... - модифицирует уже существующую функцию с таким названием (имеет примерно такие же ограничения, что REPLACE для VIEW)
+
+SELECT func_name(arg1, arg2) AS something; - выполнит функцию и выведет результат в столбце something
+
+Функции с аргументами:
+- IN - входящие аргументы
+- OUT - исходящие аргументы
+- INOUT - и входящий, и исходящий аргумент
+- VARIADIC - массив входящих параметров
+- DEFAULT value - значение по умолчанию
+^
+Их всех можно комбинировать ... func_name(IN arg1, OUT arg2, ...) ...
+
+IN:
+CREATE OR REPLACE FUNCTION get_product_price_by_name(IN [можно и без IN] prod_name varchar) RETURNS real AS $$
+	SELECT unit_price
+	FROM products
+	WHERE product_name = prod_name
+$$ LANGUAGE SQL;
+
+SELECT get_product_price_by_name('Chocolade') - выведет цену за товар под названием 'Chocolade'.
+
+OUT:
+CREATE or REPLACE FUNCTION get_price_boundaries(OUT max_price real, OUT min_price real) AS $$
+	SELECT MAX(unit_price), MIN(unit_price)
+	FROM products
+$$ LANGUAGE SQL;
+
+SELECT get_price_boundaries() - выведет информацию в формате (data1, data2), где data1 = max_price и data2 = min_price.
+ИЛИ
+SELECT * FROM get_price_boundaries() - выведет столбцы max_price(MAX(unit_price)) и min_price(MIN(unit_price)) с соответствующими данными.
+
+DEFAULT:
+CREATE OR REPLACE FUNCTION get_price_boundaries_by_discontinuity(IN is_discontinued int DEFAULT 1, OUT max_price real, OUT min_price real) AS $$ - появилось значение по умолчанию
+	SELECT MAX(unit_price), MIN(unit_price)
+	FROM products
+	WHERE discontinued = is_discontinued
+$$ LANGUAGE SQL;
+
+SELECT get_price_boundaries_by_discontinuity(1)/()
+
+Возврат множества строк:
+- RETURNS SETOF data_type - возврат n-значений типа data_type
+- RETURNS SETOF table.name - если нужно вернуть все столбцы из таблицы или пользовательского типа
+- RETURNS SETOF RECORD - позволяет возвращать множественные записи (строки) со столбцами разных типов
+- RETURNS TABLE (column1_name data_type, ...) - то же, что и SETOF table, но имеем возможность явно указать возвращаемые столбцы
+- Возврат через out-параметры
+
+RETURNS SETOF data_type:
+************************
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories() 
+		RETURNS SETOF double precision AS $$
+	SELECT AVG(unit_price)
+	FROM products
+	GROUP BY category_id	
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_average_prices_by_product_categories() - выведет все получившиеся строки
+
+RETURNS SETOF RECORD:
+*********************
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories(OUT sum_price real, OUT avg_price float) 
+		RETURNS SETOF RECORD AS $$
+	SELECT SUM(unit_price), AVG(unit_price)
+	FROM products
+	GROUP BY category_id	
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_average_prices_by_product_categories(); - выведет все получившиеся строки
+ИЛИ
+SELECT sum_price FROM get_average_prices_by_product_categories(); - выведет только столбец sum_price
+
+RETURNS SETOF RECORD (случай без OUT):
+**************************************
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories() RETURNS SETOF RECORD AS $$
+	SELECT SUM(unit_price), AVG(unit_price)
+	FROM products
+	GROUP BY category_id	
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_average_prices_by_product_categories() AS (sum_price real, avg_price float8); - рабочий, но не очень неудобный способ
+
+RETURNS TABLE:
+**************
+CREATE OR REPLACE FUNCTION get_customers_by_country(customer_country varchar) RETURNS TABLE(char_code char, company_name varchar) AS $$
+	SELECT customer_id, company_name
+	FROM customers
+	WHERE country = customer_country
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_customers_by_country('USA'); - выведет таблицу из двух столбцов char_code и company_name
+
+RETURNS SETOF table.name:
+*************************
+CREATE OR REPLACE FUNCTION get_customers_by_country(customer_country varchar) RETURNS SETOF customers AS $$
+	SELECT * - нужно выбрать все столбцы, иначе работать не будет
+	FROM customers
+	WHERE country = customer_country
+$$ LANGUAGE SQL;
+
+SELECT * FROM get_customers_by_country('USA'); - можно делать выборки по отдельным столбцам
+
+
