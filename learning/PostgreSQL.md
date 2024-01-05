@@ -1,4 +1,4 @@
-### Основные знания
+## PostgreSQL
 
 * **SQL** (Structured Query Language) - язык структурированных запросов.
 
@@ -31,17 +31,17 @@
 
 * Среда, где пишем код - **Query Tool**.
 
-* Команды по соглашению нужно прописывать с **заглавной** буквы, а названия таблиц, ... с **маленькой**.
+* Команды (операторы) по соглашению нужно прописывать с **заглавной** буквы, а названия таблиц, ... с **маленькой**.
 
 * Для того, чтобы экранировать внутреннюю кавычку необходимо добавить перед ней ещё одну - **'something''wasd'**.
 
-#### Типы СУБД:
+### Типы СУБД:
 
 1. **Файл-серверные**: Microsoft Access
 2. **Клиент-серверные**: MySQL, PostgreSQL, Oracle, ...
 3. **Встраиваемые**: SQLite
 
-#### Типы SQL-запросов:
+### Типы SQL-запросов:
 
 1. **DDL** (Data Definition Language) - работа с БД / таблицами.
     * `CREATE TABLE` table_name – создать таблицу
@@ -67,9 +67,9 @@
 4. **DCL** (Data Control Language) - работа с разрешениями. `GRANT`, `REVOKE`, `DENY`.
 5. **ANSI SQL-92** - единый стандарт для всех SQL языков. Благодаря ему большая часть запросов примерно одинаковая.
 
-#### [Основные типы данных](https://metanit.com/sql/postgresql/2.3.php)
+### [Основные типы данных](https://metanit.com/sql/postgresql/2.3.php)
 
-#### Базовые SQL-запросы
+### Базовые SQL-запросы
 
 1. Создание БД:
    ```
@@ -84,8 +84,8 @@
    ```
    CREATE TABLE table_name
    (
-   data_id integer PRIMARY KEY,
-   column1 varchar(128) [NOT NULL,...]
+       data_id integer PRIMARY KEY,
+       column1 varchar(128) [NOT NULL,...], ...
    )
    ```
 4. Удаление таблицы:
@@ -102,14 +102,285 @@
 * Также возможно запись вставки в одну строчку (n=1).  
   `INSERT INTO table_name VALUES (data1, data2, ...);`
 
-#### Отношение один ко многим
+### Отношение один ко многим (самое популярное)
 
-#### Отношение один к одному
+* **Пример**: издатель - книги
 
-#### Отношение многие ко многим
+```
+CREATE TABLE publisher
+(
+    publisher_id integer PRIMARY KEY,
+    org_name varchar(128) NOT NULL,
+    address text NOT NULL
+);
+
+CREATE TABLE book
+(
+   book_id integer PRIMARY KEY,
+   title text NOT NULL,
+   isbn varchar(32) NOT NULL
+);
+```
+
+```
+ALTER TABLE book
+ADD COLUMN fk_publisher_id int FOREIGN KEY; - добавить в конец
+
+ALTER TABLE book
+ADD CONSTRAINT fk_publisher_id - добавить ограничение
+FOREIGN KEY(fk_publisher_id) REFERENCES publisher(publisher_id);
+```
+
+Или можно задать зависимость при создании таблицы:
+
+```
+CREATE TABLE book
+(
+   book_id integer PRIMARY KEY,
+   title text NOT NULL,
+   isbn varchar(32) NOT NULL
+   fk_publisher_id integer REFERENCES publisher(publisher_id) NOT NULL
+);
+```
+
+### Отношение один к одному
+
+* **Пример**: человек - паспорт
+
+```
+CREATE TABLE person
+(
+    person_id int PRIMARY KEY,
+    first_name varchar(64) NOT NUL,
+    last_name varchar(64) NOT NULL
+);
+
+CREATE TABLE passport
+(
+    passport_id int PRIMARY KEY,
+    serial_number int NOT NUL,
+    fk_person_id int UNIQUE REFERENCES person(person_id) - UNIQUE гарантирует отсутствие дубликатов
+);
+```
+
+### Отношение многие ко многим
+
+* **Пример**: авторы статей - статьи
+
+```
+CREATE TABLE book
+(
+    book_id int PRIMARY KEY
+)
+
+CREATE TABLE author
+(
+    author_id int PRIMARY KEY
+)
+```
+
+```
+CREATE TABLE book_author
+(
+    book_id int REFERENCES book(book_id),
+    author_id int REFERENCES author(author_id),
+    
+    CONSTRAINT book_author_pkey PRIMARY KEY (book_id, author_id) - композитный ключ (состояющий из более чем одной колонки)
+)
+```
+
+* что **PRIMARY KEY**, что **FOREIGN KEY** являются ограничениями (**CONSTRAINT**)
+
+### Базовые SELECT-запросы (выборки)
+
+* **SELECT** работает после **FROM** и **WHERE**.
+
+```
+SELECT * - полная выборка (все колонки и все строки)
+FROM table_name
+```
+
+**SELECT** получает строки из множества таблиц.
+
+* `SELECT column1_name, column2_name, ...` - выборка из конкретных столбцов.
 
 
+* `SELECT column1_name * column2_name` - выборка (столбец) из произведения элементов столбцов.
+
+**DISTINCT** выводит только уникальные строки.
+
+* `SELECT DISTINCT column1_name` - выводит только уникальные элементы.
 
 
+* `SELECT DISTINCT column1_name, column2_name` - выводит только уникальные строки (сочетания).
+
+**COUNT** выводит количество строк.
+
+* `SELECT COUNT(*)` - посчитает общее количество строк.
 
 
+* `SELECT COUNT(DISTINCT column1_name)` - посчитает количество уникальных строк в данном столбце.
+
+
+* `SELECT column1_name || ' ' || column2_name` == `SELECT CONCAT(column1_name,' ',column2_name)` - выведет один столбец
+  со значениями через пробел (объединение столбцов).
+
+### Фильтрация WHERE
+
+* Для работы с датами их необходимо заключать в одинарные кавычки `date > '1998-01-01'`
+
+```
+SELECT *
+FROM table_name
+WHERE column1_name > 123 - условие
+```
+
+**WHERE** - оператор фильтрации.
+
+* `WHERE condition1 AND/OR condition2`
+
+
+* `WHERE column_name BETWEEN data1 and data2` - оператор предполагает включение (нестрого)
+
+
+* `WHERE column_name == data1 OR column_name == data2 OR ...` == `WHERE column_name IN (data1, data2, ...)`
+
+
+* `WHERE column_name NOT IN (data1, data2, ...)`
+
+
+* `WHERE column_name IS [NOT] NULL`
+
+### Сортировка ORDER BY
+
+* Идёт после **FROM** или после **WHERE**.
+
+```
+SELECT *
+FROM table_name
+ORDER BY column1_name ASC, column2_name DESC, ...
+```
+
+**ORDER BY** - оператор сортировки вывода запроса.
+
+* **ASC**/**DESC** (Ascending/Descending)
+* По умолчанию стоит **ASC**, те по возрастанию.
+
+### Агрегатные функции
+
+```
+SELECT MIN(column_name) - выведет минимальное из column_name
+FROM table_name
+```
+
+**Агрегатные функции** вычисляют одно значение над некоторым набором строк.
+
+* Ещё есть `MAX`, `AVG`, `SUM`, ...
+
+### Оператор LIKE
+
+**%** - placeholder (заполнитель) означающий 0, 1 и более символов.
+**_** - ровно 1 любой символ.
+
+```
+SELECT column_name
+FROM table_name
+WHERE column_name LIKE '%a_'
+```
+
+**LIKE** - оператор, который используется для поиска строк, содержащих определённый шаблон символов.
+
+* `LIKE 'U%'` - строки, начинающиеся с U.
+* `LIKE '%U'` - строки, оканчивающиеся на U.
+
+### Оператор LIMIT
+
+* Идёт всегда последним.
+
+```
+SELECT column_name
+FROM table_name
+LIMIT 15 - выведет первые 15 элементов column_name
+```
+
+**LIMIT** - оператор, который выводит указанное число строк запроса.
+
+### Группировка GROUP BY
+
+* При наличии **WHERE** и **ORDER BY** стоит между ними.
+
+*
+
+```
+SELECT column_name, COUNT(*) AS custom_name - псевдоним (кастомное название) столбца
+FROM table_name
+GROUP BY column_name
+```
+
+**GROUP BY** определяет то, как строки будут группироваться.
+
+**Пример:**
+
+```
+SELECT category_id, supplier_id, AVG(unit_price) AS avg_price
+FROM products
+WHERE units_in_stock > 10
+GROUP BY category_id, supplier_id - группировка по двум параметрам
+ORDER BY category_id
+LIMIT 5
+```
+
+### Постфильтрация HAVING
+
+```
+SELECT column1_name, MIN(column2_name)
+FROM table_name
+GROUP BY column1_name, column2_name, ... 
+HAVING condition - постфильтрация
+```
+
+**HAVING** - оператор, который используется в паре с **GROUP BY** и является фильтром для групп.
+
+**Пример:**
+
+```
+SELECT category_id, SUM(unit_price * units_in_stock)
+FROM products
+WHERE discontinued <> 1 - фильтр
+GROUP BY category_id
+HAVING SUM(unit_price * units_in_stock) > 5000 - постфильтр
+ORDER BY SUM(unit_price * units_in_stock) DESC
+```
+
+### Операции на множествах
+
+```
+SELECT column11_name, column12_name - ориентируемся на эти столбцы
+FROM table1_name
+UNION
+SELECT column21_name, column22_name - их количество должно совпадать
+FROM table2_name
+```
+
+* **UNION** - объединение (удаляет дубликаты)
+
+* **UNION ALL** - объединение (не удаляет дубликаты)
+
+
+* **INTERSECT** - пересечение (удаляет дубликаты)
+* **INTERSECT ALL** - пересечение (не удаляет дубликаты)
+
+
+* **EXCEPT** - исключение (возвращает первую выборку без второй и удаляет дубликаты)
+* **EXCEPT ALL** - **EXCEPT** + разница между количеством единых дубликатов выборок, если в первой их больше (10 в
+  первой и 6 во второй, то в конечной будет 4 элемента) + не удаляет дубликаты
+
+**Пример:**
+
+```
+SELECT country
+FROM customers
+UNION/INTERSECT/EXCEPT [ALL]
+SELECT country
+FROM employees
+```
