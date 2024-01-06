@@ -575,4 +575,78 @@ JOIN table2_name [AS] new_tb2 ON new_tb1.id = new_tb2.id
 
 * Можно использовать в **GROUP BY** и **ORDER BY** (работают после **SELECT**) и при использовании **подзапросов**.
 
+---
 
+### Подзапросы
+
+**Зачем они нужны?**
+
+* Запросы бывают логически сложными.
+* Реализовать запрос в лоб может быть сложно => подзапросы могут помочь.
+* Есть задачи, которые без подзапросов не решить.
+
+Выведем все компании, которые находятся там же, где и клиенты:
+
+```
+SELECT company_name
+FROM suppliers
+WHERE country IS IN (SELECT DISTINCT country FROM customers) - это подзапрос
+	             
+```
+
+Можно заменить **JOIN**ом:
+
+```
+SELECT company_name
+FROM suppliers
+JOIN customers USING(country)
+```
+
+НО так работает не всегда. Проще говоря надо смотреть по ситуации - когда-то удобнее **JOIN**, когда-то **подзапрос**.
+
+---
+
+### Оператор EXISTS
+
+**WHERE EXISTS** с подзапросом внутри возвращает **true**, если в подзапросе была возвращена хотя бы одна строка.
+
+```
+SELECT company_name, contact_name
+FROM costumers
+WHERE [NOT] EXISTS (SELECT customer_id FROM orders
+              WHERE customer_id = customers.customer_id 
+              AND freight BETWEEN 50 AND 100)
+```
+
+---
+
+### Операторы ANY | ALL
+
+* Операторы **ANY** и **ALL** используются с фильтрациями **WHERE** и **HAVING**.
+
+* Оператор **ANY** возвращает **true**, если какое-либо из значений подзапроса соответствует условию.
+
+* Оператор **ALL** возвращает **true**, если все значения подзапроса удовлетворяют условию.
+
+```
+SELECT DISTINCT company_name
+FROM customers
+WHERE customer_id = ANY(
+   SELECT customer_id
+   FROM orders
+   JOIN order_details USING(order_id)
+   WHERE quantity > 40
+   )
+```
+
+```
+SELECT DISTINCT product_name
+FROM products
+JOIN order_details USING(product_id)
+WHERE quantity > ALL (SELECT AVG(quantity)
+   FROM order_details
+   GROUP BY product_id
+   )
+```
+
+---
