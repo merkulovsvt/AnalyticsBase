@@ -59,7 +59,8 @@
         * `RENAME` column_name `TO` new_column_name.
         * `ALTER COLUMN` column_name `SET DATA TYPE` data_type.
     * `DROP TABLE` table_name – удалить таблицу.
-    * `TRUNCATE TABLE` table_name – удалить все данные, но оставить структуру (нельзя резать таблицы, на которые есть
+    * `TRUNCATE TABLE` table_name – удалить все данные и логи, но оставить структуру (нельзя резать таблицы, на которые
+      есть
       ссылки, те внешний ключ, в других таблицах).
 
 
@@ -643,10 +644,550 @@ WHERE customer_id = ANY(
 SELECT DISTINCT product_name
 FROM products
 JOIN order_details USING(product_id)
-WHERE quantity > ALL (SELECT AVG(quantity)
+WHERE quantity > ALL(SELECT AVG(quantity)
    FROM order_details
    GROUP BY product_id
    )
+```
+
+---
+
+### DDL (Data Definition Language)
+
+* `CREATE TABLE` table_name – создать таблицу.
+* `ALTER TABLE` table_name – изменить таблице.
+* `ADD COLUMN` column_name data_type.
+* `RENAME TO` new_table_name.
+* `RENAME` column_name `TO` new_column_name.
+* `ALTER COLUMN` column_name `SET DATA TYPE` data_type.
+* `DROP TABLE` table_name – удалить таблицу.
+* `TRUNCATE TABLE` table_name – удалить все данные и логи, но оставить структуру (нельзя резать таблицы, на которые есть
+  ссылки, те внешний ключ, в других таблицах).
+
+**DDL** (язык описания данных) отвечает за работу с **БД** | **таблицами**.
+
+* Создание таблицы:
+
+```
+CREATE TABLE student(
+student_id serial NOT NULL,
+first_name varchar(128),
+last_name varchar(128)
+);
+```
+
+* Добавление колонки в таблицу:
+
+```
+ALTER TABLE student
+ADD COLUMN middle_name varchar(128);
+```
+
+* Переименовывание таблицы:
+
+```
+ALTER TABLE student
+RENAME TO student_data;
+```
+
+* Переименовывание колонки:
+
+```
+ALTER TABLE student_data
+RENAME last_name TO new_last_name;
+```
+
+* Удаление колонки:
+
+```
+ALTER TABLE student_data
+DROP COLUMN new_last_name,
+DROP COLUMN middle_name;
+```
+
+* Изменение типа данных колонки:
+
+```
+ALTER TABLE student_data
+ALTER COLUMN first_name 
+SET DATA TYPE varchar(64);
+```
+
+* Удаление таблицы:
+
+```
+DROP TABLE student_data;
+```
+
+---
+
+### Тип данных serial
+
+* Он представляет автоинкрементирующееся числовое значение.
+* Значение данного типа образуется путем автоинкремента значения предыдущей строки (**+1**).
+* Поэтому, как правило, данный тип используется для определения **id** строки.
+
+**Автоинкремент** — это функция, которая автоматически генерирует уникальный номер для каждой новой строки, добавленной
+в таблицу.
+
+Посмотрим, как работает serial на примере ранее созданной таблицы **student_data**:
+
+* Присвоит **Anna** `student_id = 1` и **Alla** `student_id = 2` автоматически.
+
+```
+INSERT INTO student_data (first_name) 
+VALUES
+('Anna'),
+('Alla');
+```
+
+* Присвоит **Anna** `student_id = 3` и **Alla** `student_id = 4`.
+
+```
+TRUNCATE TABLE student_data; - удаление данных и логов таблицы, но не её структуры.
+
+INSERT INTO student_data (first_name) 
+VALUES
+('Anna'),
+('Alla');
+``` 
+
+Так выходит потому что у **TRUNCATE** по умолчанию стоит **CONTINUE IDENTITY** (не сбрасывает нумерацию **id**).
+
+* Для сброса необходимо добавить **RESTART IDENTITY** - `TRUNCATE TABLE student_data RESTART IDENTITY;`.
+
+---
+
+### Ограничение CONSTRAINT
+
+* **CONSTRAINT** используются для (указания правил) ограничения типа данных, которые могут быть помещены в таблицу. Это
+  обеспечивает точность и достоверность данных в таблице.
+
+* Если существует какое-либо нарушение между ограничением и действием данных, действие
+  прерывается.
+
+* Ограничения могут быть на уровне столбцов и таблиц.
+
+В SQL обычно используются следующие ограничения:
+
+* `NOT NULL` - гарантирует, что столбец не может иметь нулевое значение.
+* `UNIQUE` - гарантирует, что все значения в столбце будут разными.
+* `PRIMARY KEY` - комбинация NOT NULL и UNIQUE. Уникально идентифицирует каждую строку в таблице.
+* `FOREIGN KEY` - однозначно идентифицирует строку/запись в другой таблице.
+* `CHECK` - гарантирует, что все значения в столбце удовлетворяют определенному условию.
+* `DEFAULT` - задает значение по умолчанию для столбца, если значение не указано.
+* `INDEX` - используется для быстрого создания и извлечения данных из базы данных.
+
+Задать ограничение можно при создании и изменении таблицы.
+
+* Способ вывести все ограничения по столбцу `chair_id`:
+
+```
+SELECT constraint_name
+FROM information_schema.key_column_usage
+WHERE table_name = 'chair'
+AND table_schema = 'public'
+AND column_name = 'chair_id';
+```
+
+* Способ удалить ограничение:
+
+```
+ALTER TABLE chair
+DROP CONSTRAINT chair_chair_id_key - название ограничения.
+```
+
+---
+
+### PRIMARY KEY
+
+* Уникально идентифицирует каждую строку в таблице.
+
+В таблице **PK** может быть только один столбец или комбинация столбцов (**композитный ключ**), в отличие от **UNIQUE
+NOT NULL**.
+
+* Задание **PK** при создании:
+
+```
+CREATE TABLE chair
+(
+chair_id serial [CONSTRAINT PK_char_chair_id] PRIMARY KEY, - название ограничения задано автоматически 'chair_chair_id_key'
+chair_name varchar
+);
+```
+
+```
+CREATE TABLE chair
+(
+chair_id serial,
+chair_name varchar,
+
+CONSTRAINT PK_char_chair_id PRIMARY KEY(chair_id) - мы сами задали название ограничения 'PK_char_chair_id'
+);
+```
+
+* Задание **PK** при изменении:
+
+```
+ALTER TABLE chair
+ADD PRIMARY KEY(chair_id);
+```
+
+```
+ALTER TABLE chair
+ADD CONSTRAINT PK_char_chair_id PRIMARY KEY(chair_id)
+```
+
+---
+
+### FOREIGN KEY
+
+* Используется для связи между таблицами.
+
+* Внешний ключ устанавливается для столбца из зависимой таблицы, и указывает на один из столбцов из главной таблицы.
+
+Как правило, внешний ключ указывает на первичный ключ из связанной главной таблицы.
+
+* Задание **FK** при создании:
+
+```
+CREATE TABLE book
+(
+book_id serial PRIMARY KEY,
+publisher_id serial [CONSTRAINT FK_books_publisher] REFERENCES publisher(publisher_id)
+);
+```
+
+```
+CREATE TABLE book
+(
+book_id serial PRIMARY KEY,
+publisher_id serial,
+
+CONSTRAINT FK_books_publisher FOREIGN KEY(publisher_id) REFERENCES publisher(publisher_id)
+);
+```
+
+* Задание **FK** при изменении:
+
+```
+ALTER TABLE book
+ADD CONSTRAINT FK_books_publisher FOREIGN KEY(publisher_id) REFERENCES publisher(publisher_id);
+```
+
+Если при **INSERT** в `book` передать в `publisher_id` не существующий **id**, то будет ошибка.
+
+* Общий синтаксис установки внешнего ключа:
+
+```
+REFERENCES ref_table_name(ref_table_column_name)
+    [ON DELETE {CASCADE|RESTRICT|...}]
+    [ON UPDATE {CASCADE|RESTRICT|...}]
+```
+
+* С помощью выражений **ON DELETE** и **ON UPDATE** можно установить действия, которые выполняются соответственно при
+  **удалении** и **изменении** связанной строки из главной таблицы.
+
+Для установки подобного действия можно использовать следующие опции:
+
+* **CASCADE**: автоматически удаляет или изменяет строки из зависимой таблицы при удалении или изменении связанных строк
+  в главной таблице.
+
+* **RESTRICT**: предотвращает какие-либо действия в зависимой таблице при удалении или изменении связанных строк в
+  главной таблице. То есть фактически какие-либо действия отсутствуют.
+
+* **NO ACTION**: действие по умолчанию, предотвращает какие-либо действия в зависимой таблице при удалении или изменении
+  связанных строк в главной таблице. И генерирует ошибку. В отличие от **RESTRICT** выполняет проверку на связанность
+  между таблицами в конце транзакции.
+
+* **SET NULL**: при удалении связанной строки из главной таблицы устанавливает для столбца внешнего ключа значение
+  **NULL**.
+
+* **SET DEFAULT**: при удалении связанной строки из главной таблицы устанавливает для столбца внешнего ключа значение по
+  умолчанию, которое задается с помощью атрибуты **DEFAULT**. Если для столбца не задано значение по умолчанию, то в
+  качестве него применяется значение **NULL**.
+
+---
+
+### CHECK
+
+* Используется для ограничения диапазона значений, которые могут быть помещены в столбец.
+
+
+* Задание **CHECK** при создании:
+
+```
+CREATE TABLE book
+(
+book_id serial PRIMARY KEY,
+price decimal [CONSTRAINT CHK_book_price] CHECK (price >= 0)
+);
+```
+
+```
+CREATE TABLE book
+(
+book_id serial PRIMARY KEY,
+price decimal,
+    
+CONSTRAINT CHK_book_price CHECK (price >= 0)
+);
+```
+
+* Задание **CHECK** при изменении:
+
+```
+ALTER TABLE book
+ADD CONSTRAINT CHK_book_price CHECK (price >= 0); - сервер не даст записать данные, если не будет выполнено условие
+```
+
+* Внутри скобок может быть любое условие
+
+---
+
+### DEFAULT
+
+* Используется для задания значения по умолчанию столбца.
+
+Никаких **CONSTRAINT** для **DEFAULT** не нужно.
+
+* Задание **DEFAULT** при создании:
+
+```
+CREATE TABLE customer
+(
+customer_id serial,
+full_name text,
+status char DEFAULT 'r',
+
+CONSTRAINT PK_customer_customer_id PRIMARY KEY(customer_id),
+CONSTRAINT CHK_customer_status CHECK(status = 'r' OR status = 'p')
+)
+```
+
+* Задание **DEFAULT** при изменении:
+
+```
+ALTER TABLE customer
+ALTER COLUMN status 
+SET DEFAULT 'r';
+```
+
+* Удаление **DEFAULT** при изменении:
+
+```
+ALTER TABLE customer
+ALTER COLUMN status 
+DROP DEFAULT;
+```
+
+---
+
+### Генератор последовательностей SEQUENCE
+
+* Создание последовательности (счетчика):
+
+```
+CREATE SEQUENCE seq;
+```
+
+* Функции последовательностей:
+
+```
+SELECT nextval('seq'); - сначала запускает счетчик со значением старта, а далее делает следующие шаги и возвращает соответствующие значение последовательности.
+SELECT currval('seq'); - возвращает текущее значение последовательности.
+SELECT lastval(); - не принимает аргумент и возвращает последнее значение, сгенерованное какой-либо из последовательностей данной сессии.
+SELECT setval('seq', 16, {true|false}) - устанавливает для последовательности заданное значение поля.
+```
+
+При **true** (по умолчанию) - `nextval('seq')` будет следующее число относительно заданного в `setval`.  
+При **false** - `nextval('seq')` будет число заданное в `setval`.
+
+* Основные параметры при создании последовательности:
+
+```
+CREATE SEQUENCE IF NOT EXISTS giga_seq
+INCREMENT 16 - шаг 16
+MINVALUE 0 - минимум 0 (при переходе выводит ошибку)
+MAXVALUE 160 - максимум 160 (при переходе выводит ошибку)
+START WITH 2 - начинает с 2 (по умолчанию стоит 0)
+```
+
+* Переименование последовательности:
+
+```
+ALTER SEQUENCE seq
+RENAME TO new_seq; 
+```
+
+* Сброс последовательности:
+
+```
+ALTER SEQUENCE seq
+RESTART [WITH num];
+```
+
+* Удаление последовательности:
+
+```
+DROP SEQUENCE seq;
+```
+
+---
+
+### Последовательности и таблицы
+
+* Делаем **serial** в домашних условиях:
+
+```
+CREATE TABLE book
+(
+book_id int NOT NULL,
+title text NOT NULL,
+isbn varchar(32) NOT NULL,
+publisher_id int NOT NULL,
+
+CONSTRAINT PK_book_book_id PRIMARY KEY(book_id)
+);
+```
+
+```
+CREATE SEQUENCE IF NOT EXISTS book_book_id_seq
+START WITH 1 OWNED BY book.book_id;
+```
+
+```
+ALTER TABLE book
+ALTER COLUMN book_id 
+SET DEFAULT nextval('book_book_id_seq'); - установить значения по умолчанию, иначе будет ошикба при INSERT.
+```
+
+Но всё не так красочно, ведь тут <u>так же как и у оригинального</u> **serial** существует проблема с ручной добавкой
+**book_id**.
+
+В какой-то момент будет ошибка - последовательность упрётся в номер, который мы добавили, тк **PK** по определению
+**UNIQUE**.  
+Проще говоря, нет синхронизации с реальностью.
+
+* Делаем **serial++**:
+
+```
+CREATE TABLE book
+(
+book_id int GENERATED {ALWAYS или BY DEFAULT} AS IDENTITY (START WITH 1 INCREMENT BY 1 ...) NOT NULL,
+title text NOT NULL,
+isbn varchar(32) NOT NULL,
+publisher_id int NOT NULL,
+
+CONSTRAINT PK_book_book_id PRIMARY KEY(book_id)
+);
+```
+
+```
+INSERT INTO book (title, isbn, publisher_id)
+VALUES
+('data','data', 1);
+```
+
+В данном случае мы просто не сможем добавить в таблицу строку при указывании **book_id** вручную.
+
+* Работает на версиях PostgreSQL >= 10.
+* Другие СУБД поддерживают подобный синтаксис.
+
+Ограничение можно обойти так:
+
+```
+INSERT INTO book
+OVERRIDING SYSTEM VALUE
+VALUES (3, 'data', 'data', 1)
+```
+
+---
+
+### Оператор INSERT
+
+* Вставляем во все столбцы таблицы.
+
+```
+INSERT INTO table_name
+VALUES
+(data1), 
+(data2); - можно вставлять больше 1 строчки данных за раз
+```
+
+* Вставляем в конкретные столбцы таблицы.
+
+```
+INSERT INTO table_name (column1_name, ...)
+VALUES ();
+```
+
+* Cоздаём новую таблицу `best_authors` с данными из `author` при условии `rating > 4`.
+
+```
+SELECT *
+INTO best_authors
+FROM author
+WHERE rating > 4
+```
+
+* Вставляем данные из `author` в `best_authors` при условии `rating < 4`.
+
+```
+INSERT INTO best_authors 
+SELECT *
+FROM author
+WHERE rating < 4
+```
+
+---
+
+### Операторы UPDATE, DELETE, RETURNING
+
+* **UPDATE** - обновляет таблицу.
+
+```
+UPDATE author
+SET full_name = 'Big Man', rating = 5 - изменил значения full_name и rating в строке, где author_id = 3.
+WHERE author_id = 3;
+```
+
+* **DELETE** - удаляет данные из таблицы, но сохраняет логи.
+
+```
+DELETE FROM author
+WHERE rating < 4.5; - удалили все строки, где rating < 4.5.
+```
+
+```
+DELETE FROM author; - удалит все строки.
+```
+
+* **RETURNING** - выводит данные, с которыми мы работали (вставили, обновили, удалили).
+
+```
+INSERT INTO book
+VALUES ('data')
+RETURNING *; - выведет всё, что мы вставили.
+```
+
+```
+INSERT INTO book (book_id)
+VALUES ('data')
+RETURNING book_id; - выведет все book_id, что мы вставили.
+```
+
+```
+UPDATE author
+SET full_name = 'Big Man', rating = 5
+WHERE author_id = 3
+RETURNING *; - выведет всё, что мы обновили.
+```
+
+```
+DELETE FROM author
+WHERE author_id = 3
+RETURNING *; - выведет всё, что мы удалили.
 ```
 
 ---
