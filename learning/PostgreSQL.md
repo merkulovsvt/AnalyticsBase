@@ -204,7 +204,7 @@ CREATE TABLE book_author
     book_id int REFERENCES book(book_id),
     author_id int REFERENCES author(author_id),
     
-    CONSTRAINT book_author_pkey PRIMARY KEY (book_id, author_id) - композитный ключ (состояющий из более чем одной колонки)
+    CONSTRAINT book_author_pkey PRIMARY KEY (book_id, author_id) - композитный ключ (состояющий из нескольких колонок) - плохо
 )
 ```
 
@@ -803,8 +803,8 @@ DROP CONSTRAINT chair_chair_id_key - название ограничения.
 
 * Уникально идентифицирует каждую строку в таблице.
 
-В таблице **PK** может быть только один столбец или комбинация столбцов (**композитный ключ**), в отличие от **UNIQUE
-NOT NULL**.
+В таблице **PK** может быть только один столбец или комбинация столбцов (**композитный ключ**) - **плохо**, в отличие от
+**UNIQUE NOT NULL**.
 
 * Задание **PK** при создании:
 
@@ -1144,7 +1144,7 @@ WHERE rating < 4
 
 ### Операторы UPDATE, DELETE, RETURNING
 
-* **UPDATE** - обновляет таблицу.
+* **UPDATE** - обновляет данные таблицы.
 
 ```
 UPDATE author
@@ -1191,3 +1191,256 @@ RETURNING *; - выведет всё, что мы удалили.
 ```
 
 ---
+
+### Нормализация
+
+* **Нормальная Форма** - свойство отношения, характеризующее его с точки зрения избыточности.
+
+* **Нормализация** - процесс минимизации избыточности отношения (приведение к НФ).
+
+**1 Нормальная форма**
+
+* Нет строк-дубликатов.
+* Все поля (атрибуты) простых типов данных (int, varchar, ...). Не массивы.
+* Все значения скалярные (одно значение в поле). Не массивы.
+
+**2 Нормальная форма**
+
+* Удовлетворяет **1НФ**.
+* Есть первичный ключ (может быть композитным).
+* Все поля (атрибуты) описывают первичный ключ целиком, а не лишь его часть:
+
+Таблица `(author_id, book_id, author_name, book_title)` - не подходит, тк `author_name` описывает только
+ключ `author_id`, а `book_title` только `book_id`.  
+Поэтому надо разбить данную таблицу на 3, `(author_id, author_name)`, `(book_id, book_title)`, `(author_id, book_id)`.
+
+**3 Нормальная форма**
+
+* Удовлетворяет **2НФ**
+* Нет зависимостей одних неключевых атрибутов от других (все атрибуты зависят только от первичного или внешнего ключа)
+
+Таблица `(book_id, book_title, publisher_title, publisher_contact)` - не подходит, тк `publisher_title` зависит
+от `publisher_contact` и они оба не являются ключевыми.  
+Поэтому надо разбить данную таблицу на 2, `(book_id, book_title, publisher_id)`, `(publisher_id, title, contact)`.
+
+
+---
+
+### Представления VIEW
+
+* **VIEW** - сохранённый запрос (подзапрос) в виде объекта БД (виртуальная таблица).
+* Так как **VIEW** объект, то его можно увидеть в Schemas - Public - Views.
+* К **VIEW** можно делать обычный **SELECT**.
+* **VIEW** можно соединять и тд (**JOIN**,...).
+* Производительность такая же, как и у обычной таблицы.
+* Позволять делать кеширование с помощью материализации.
+* Позволяет сокращать сложные запросы.
+* Позволяет подменить реальную таблицы.
+* Позволяет создавать виртуальные таблицы, соединяющие несколько таблиц.
+* Позволяет скрыть логику агрегации данных при работе через **ORM**.
+* Позволяет скрыть информацию(строки/столбцы) от групп пользователей.
+
+**Виды**:
+
+* Временные. +
+* Обновляемые. +
+* Рекурсивные. -
+* Материализуемые. -
+
+```
+CREATE VIEW view_name AS
+SELECT select_statement - обычный запрос
+```
+
+Изменение (`REPLACE`) **VIEW**:
+
+* Можно только добавлять в конец новые столбцы:
+    * нельзя удалять существующие
+    * нельзя поменять имена столбцов
+    * нельзя поменять порядок следования столбцов
+
+```
+CREATE OR REPLACE VIEW view_name AS
+SELECT select_statement;
+```
+
+* Можно переименовать **VIEW**:
+
+```
+ALTER VIEW view_name 
+RENAME TO new_view_name;
+```
+
+* Можно удалить **VIEW**:
+
+```
+DROP VIEW [IF EXISTS] view_name;
+```
+
+Модифицировать данные (вставлять, удалять, ...) через **VIEW** можно, если:
+
+* Данные только из одной таблицы в **SELECT**.
+* Нет **DISTINCT**, **GROUP BY**, **HAVING**, **UNION**, **INTERSECT**, **EXCEPT**, **LIMIT**.
+* Нет агрегатных функций **MIN**, **MAX**, **SUM**, **COUNT**, **AVG**, ...
+* **WHERE** не под запретом.
+
+```
+CREATE VIEW products_suppliers_categories AS
+SELECT product_name, quantity_per_unit, unit_price, units_in_stock, 
+company_name, contact_name, phone, 
+category_name, description
+FROM products
+JOIN suppliers USING (supplier_id)
+JOIN categories USING (category_id);
+```
+
+Выведет все строки, где unit_price > 20:
+
+```
+SELECT *
+FROM products_suppliers_categories
+WHERE unit_price > 20;
+```
+
+---
+
+### Обновляемые представления
+
+Оригинальная таблица:
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT order_id, freight
+FROM orders
+WHERE freight > 50;
+```
+
+После выполнения данного кода в `heavy_orders` произойдёт изменение `freight > 100` без каких-либо ошибок:
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT order_id, freight
+FROM orders
+WHERE freight > 100;
+```
+
+В таком случае будет ошибка:
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT order_id, ship_via, freight
+FROM orders
+WHERE freight > 50;
+```
+
+Два запроса снизу смогут "обмануть" систему, но придётся **DROP**ать `new_view`:
+
+```
+ALTER VIEW heavy_orders RENAME TO new_view;
+```
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT order_id, ship_via, freight
+FROM orders
+WHERE freight > 50;
+```
+
+Можно делать **INSERT** через **VIEW** (вставится в оригинальные таблицы):
+
+```
+INSERT INTO heavy_orders
+VALUES (1, 1, 50);
+```
+
+Можно удалять строки, что есть во **VIEW** (они также удаляются из оригинала):
+
+```
+DELETE FROM heavy_orders 
+WHERE freight < 100.25;
+```
+
+---
+
+### CHECK во VIEW
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT *
+FROM orders
+WHERE freight > 100;
+```
+
+У нас получится вставить эти неподходящие под фильтр `freight > 100` данные через `heavy_orders`.   
+Они попадут в оригинальную таблицу, но в `heavy_orders` их не будет.
+
+```
+INSERT INTO heavy_orders
+VALUES
+(11900, 'FOLIG', 1, '2000-01-01', '2000-01-05', '2000-01-04', 1, 80, 'Folies gourmandes', '184, 
+chaussee de Tournai', 'Lille', NULL, 59000, 'FRANCE'); - в данном случае freight = 80
+```
+
+Можно модифицировать **VIEW** так, чтобы фильтр во **VIEW** учитывался при вставке:
+
+```
+CREATE OR REPLACE VIEW heavy_orders AS
+SELECT *
+FROM orders
+WHERE freight > 100
+WITH {LOCAL|CASCADE} CHECK OPTION;
+```
+
+* **LOCAL** - сервер будет проверять соответствие вставляемых данных фильтру **VIEW**.
+
+* **CASCADE** - **LOCAL** + проверка будет и для подлежащих **VIEW** (детей).
+
+---
+
+### Условное выражение CASE
+
+* Представляет собой общее условное выражение, напоминающее операторы **if/else** в других языках программирования:
+
+```
+CASE WHEN condition_1 THEN result_1 - if
+     WHEN condition_2 THEN result_2 - elif
+     [WHEN...]
+     [ELSE result_n]
+END
+```
+
+* **condition** - условие, возвращающее **bool**.
+* **result** - результат или действие в случае с **PL**\**pgSQL**.
+
+В данном случае будет дополнительный столбец `amount` со значениями, соответствующими условиям:
+
+```
+SELECT product_name, unit_price, units_in_stock,
+    CASE WHEN units_in_stock >= 100 THEN 'lots of'
+         WHEN units_in_stock >= 50 THEN 'average'
+         WHEN units_in_stock < 50 THEN 'low number'
+         ELSE 'unknown'
+    END AS amount
+FROM products;
+```
+
+---
+
+### Условные выражения COALESCE и NULLIF
+
+* **COALESCE**(`arg1`, `arg2`, ...); - принимает N аргументов и возвращает первый **!=NULL элемент**.   
+  В случае, если все аргументы **NULL**, вернёт **NULL**.
+
+```
+SELECT order_id, order_date, COALESCE(ship_region, 'unknown') AS ship_region - если ship_region == NULL, будет выведено 'unknown'.
+FROM orders
+LIMIT 10;
+```
+
+* **NULLIF**(`arg1`, `arg2`) - сравнивает 2 аргумента и если они равны возвращает **NULL**.
+  В случае, если они не равны, то вернёт `arg1`.
+
+```
+SELECT contact_name, COALESCE(NULLIF(city, ''), 'Unknown') as city - Если city == '', то будет 'Unknown', иначе будет city.
+FROM customers;
+```
