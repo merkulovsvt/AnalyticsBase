@@ -82,7 +82,7 @@
 
 ---
 
-### Базовые SQL-запросы
+### Базовые SQL-запросы:
 
 1. Создание БД:
    ```
@@ -117,7 +117,7 @@
 
 ---
 
-### Отношение один ко многим (самое популярное)
+### Отношение один ко многим (самое популярное):
 
 * **Пример**: издатель - книги.
 
@@ -160,7 +160,7 @@ CREATE TABLE book
 
 ---
 
-### Отношение один к одному
+### Отношение один к одному:
 
 * **Пример**: человек - паспорт.
 
@@ -182,7 +182,7 @@ CREATE TABLE passport
 
 ---
 
-### Отношение многие ко многим
+### Отношение многие ко многим:
 
 * **Пример**: авторы статей - статьи.
 
@@ -212,7 +212,7 @@ CREATE TABLE book_author
 
 ---
 
-### Базовые SELECT-запросы (выборки)
+### Базовые SELECT-запросы (выборки):
 
 * **SELECT** работает после **FROM** и **WHERE**.
 
@@ -248,7 +248,7 @@ FROM table_name
 
 ---
 
-### Фильтрация WHERE
+### Фильтрация WHERE:
 
 * Для работы с датами их необходимо заключать в одинарные кавычки `date > '1998-01-01'`.
 
@@ -276,7 +276,7 @@ WHERE column1_name > 123 - условие
 
 ---
 
-### Сортировка ORDER BY
+### Сортировка ORDER BY:
 
 * Идёт после **FROM** или после **WHERE**.
 
@@ -293,7 +293,7 @@ ORDER BY column1_name ASC, column2_name DESC, ...
 
 ---
 
-### Агрегатные функции
+### Агрегатные функции:
 
 ```
 SELECT MIN(column_name) - выведет минимальное из column_name
@@ -306,7 +306,7 @@ FROM table_name
 
 ---
 
-### Оператор LIKE
+### Оператор LIKE:
 
 **%** - placeholder (заполнитель) означающий 0, 1 и более символов.
 **_** - ровно 1 любой символ.
@@ -324,7 +324,7 @@ WHERE column_name LIKE '%a_'
 
 ---
 
-### Оператор LIMIT
+### Оператор LIMIT:
 
 * Идёт всегда последним.
 
@@ -337,7 +337,7 @@ LIMIT 15 - выведет первые 15 элементов column_name
 **LIMIT** - оператор, который выводит указанное число строк запроса.
 ---
 
-### Группировка GROUP BY
+### Группировка GROUP BY:
 
 * При наличии **WHERE** и **ORDER BY** стоит между ними.
 
@@ -351,7 +351,7 @@ GROUP BY column_name
 
 **GROUP BY** определяет то, как строки будут группироваться.
 
-**Пример:**
+**Пример**:
 
 ```
 SELECT category_id, supplier_id, AVG(unit_price) AS avg_price
@@ -364,7 +364,7 @@ LIMIT 5
 
 ---
 
-### Постфильтрация HAVING
+### Постфильтрация HAVING:
 
 ```
 SELECT column1_name, MIN(column2_name)
@@ -375,7 +375,7 @@ HAVING condition - постфильтрация
 
 **HAVING** - оператор, который используется в паре с **GROUP BY** и является фильтром для групп.
 
-**Пример:**
+**Пример**:
 
 ```
 SELECT category_id, SUM(unit_price * units_in_stock)
@@ -388,7 +388,7 @@ ORDER BY SUM(unit_price * units_in_stock) DESC
 
 ---
 
-### Операции на множествах
+### Операции на множествах:
 
 ```
 SELECT column11_name, column12_name - ориентируемся на эти столбцы
@@ -411,7 +411,7 @@ FROM table2_name
 * **EXCEPT ALL** - **EXCEPT** + разница между количеством единых дубликатов выборок, если в первой их больше (10 в
   первой и 6 во второй, то в конечной будет 4 элемента) + не удаляет дубликаты.
 
-**Пример:**
+**Пример**:
 
 ```
 SELECT country
@@ -423,7 +423,7 @@ FROM employees
 
 ---
 
-### Соединения JOIN
+### Соединения JOIN:
 
 * Если нет соответствия ставится NULL.
 
@@ -450,11 +450,11 @@ WHERE ...
 
 ---
 
-### INNER JOIN
+### INNER JOIN:
 
 * **INNER JOIN** == **JOIN**
 
-**Пример:**
+**Пример**:
 
 ```
 SELECT product_name, suppliers.company_name, units_in_stock
@@ -464,11 +464,11 @@ INNER JOIN suppliers ON products.supplier_id = suppliers.supplier_id
 
 ---
 
-### OUTER JOINS
+### OUTER JOINS:
 
 * Если всем ключам есть соответствие, то **LEFT JOIN** == **INNER JOIN**.
 
-**Пример:**
+**Пример**:
 
 ```
 SELECT company_name, product_name
@@ -478,7 +478,7 @@ FROM suppliers
 
 ---
 
-### CROSS JOIN
+### CROSS JOIN:
 
 * При **CROSS JOIN** часть с **ON** опускается
 
@@ -490,7 +490,7 @@ CROSS JOIN table2_name
 
 ---
 
-### NATURAL JOIN
+### NATURAL JOIN:
 
 * При **NATURAL JOIN** часть с **ON** опускается
 
@@ -502,11 +502,11 @@ NATURAL JOIN table2_name
 
 * **Лучше не использовать**, а вместо этого прописывать все связи в ручную, чтобы избегать ошибок.
 
-### SELF JOIN
+### SELF JOIN:
 
 * Чаще всего нужен для того, чтобы построить иерархию
 
-**Пример:**
+**Пример**:
 
 ```
 CREATE TABLE employee (
@@ -539,7 +539,7 @@ ORDER BY manager;
 
 ---
 
-### Оператор USING
+### Оператор USING:
 
 ```
 SELECT column_name
@@ -560,7 +560,7 @@ JOIN table2_name USING(column_name)
 
 ---
 
-### Псевдонимы Alias
+### Псевдонимы Alias:
 
 * Псевдонимы используются для присвоения таблице или столбцу временного имени.
 
@@ -578,7 +578,7 @@ JOIN table2_name [AS] new_tb2 ON new_tb1.id = new_tb2.id
 
 ---
 
-### Подзапросы
+### Подзапросы:
 
 **Зачем они нужны?**
 
@@ -607,7 +607,7 @@ JOIN customers USING(country)
 
 ---
 
-### Оператор EXISTS
+### Оператор EXISTS:
 
 **WHERE EXISTS** с подзапросом внутри возвращает **true**, если в подзапросе была возвращена хотя бы одна строка.
 
@@ -621,7 +621,7 @@ WHERE [NOT] EXISTS (SELECT customer_id FROM orders
 
 ---
 
-### Операторы ANY | ALL
+### Операторы ANY | ALL:
 
 * Операторы **ANY** и **ALL** используются с фильтрациями **WHERE** и **HAVING**.
 
@@ -652,7 +652,7 @@ WHERE quantity > ALL(SELECT AVG(quantity)
 
 ---
 
-### DDL (Data Definition Language)
+### DDL (Data Definition Language):
 
 * `CREATE TABLE` table_name – создать таблицу.
 * `ALTER TABLE` table_name – изменить таблице.
@@ -721,7 +721,7 @@ DROP TABLE student_data;
 
 ---
 
-### Тип данных serial
+### Тип данных serial:
 
 * Он представляет автоинкрементирующееся числовое значение.
 * Значение данного типа образуется путем автоинкремента значения предыдущей строки (**+1**).
@@ -758,7 +758,7 @@ VALUES
 
 ---
 
-### Ограничение CONSTRAINT
+### Ограничение CONSTRAINT:
 
 * **CONSTRAINT** используются для (указания правил) ограничения типа данных, которые могут быть помещены в таблицу. Это
   обеспечивает точность и достоверность данных в таблице.
@@ -799,7 +799,7 @@ DROP CONSTRAINT chair_chair_id_key - название ограничения.
 
 ---
 
-### PRIMARY KEY
+### PRIMARY KEY:
 
 * Уникально идентифицирует каждую строку в таблице.
 
@@ -840,7 +840,7 @@ ADD CONSTRAINT PK_char_chair_id PRIMARY KEY(chair_id)
 
 ---
 
-### FOREIGN KEY
+### FOREIGN KEY:
 
 * Используется для связи между таблицами.
 
@@ -909,7 +909,7 @@ REFERENCES ref_table_name(ref_table_column_name)
 
 ---
 
-### CHECK
+### CHECK:
 
 * Используется для ограничения диапазона значений, которые могут быть помещены в столбец.
 
@@ -945,7 +945,7 @@ ADD CONSTRAINT CHK_book_price CHECK (price >= 0); - сервер не даст �
 
 ---
 
-### DEFAULT
+### DEFAULT:
 
 * Используется для задания значения по умолчанию столбца.
 
@@ -983,7 +983,7 @@ DROP DEFAULT;
 
 ---
 
-### Генератор последовательностей SEQUENCE
+### Генератор последовательностей SEQUENCE:
 
 * Создание последовательности (счетчика):
 
@@ -1035,7 +1035,7 @@ DROP SEQUENCE seq;
 
 ---
 
-### Последовательности и таблицы
+### Последовательности и таблицы:
 
 * Делаем **serial** в домашних условиях:
 
@@ -1104,7 +1104,7 @@ VALUES (3, 'data', 'data', 1)
 
 ---
 
-### Оператор INSERT
+### Оператор INSERT:
 
 * Вставляем во все столбцы таблицы.
 
@@ -1142,7 +1142,7 @@ WHERE rating < 4
 
 ---
 
-### Операторы UPDATE, DELETE, RETURNING
+### Операторы UPDATE, DELETE, RETURNING:
 
 * **UPDATE** - обновляет данные таблицы.
 
@@ -1192,7 +1192,7 @@ RETURNING *; - выведет всё, что мы удалили.
 
 ---
 
-### Нормализация
+### Нормализация:
 
 * **Нормальная Форма** - свойство отношения, характеризующее его с точки зрения избыточности.
 
@@ -1226,7 +1226,7 @@ RETURNING *; - выведет всё, что мы удалили.
 
 ---
 
-### Представления VIEW
+### Представления VIEW:
 
 * **VIEW** - сохранённый запрос (подзапрос) в виде объекта БД (виртуальная таблица).
 * Так как **VIEW** объект, то его можно увидеть в Schemas - Public - Views.
@@ -1304,7 +1304,7 @@ WHERE unit_price > 20;
 
 ---
 
-### Обновляемые представления
+### Обновляемые представления:
 
 Оригинальная таблица:
 
@@ -1362,7 +1362,7 @@ WHERE freight < 100.25;
 
 ---
 
-### CHECK во VIEW
+### CHECK во VIEW:
 
 ```
 CREATE OR REPLACE VIEW heavy_orders AS
@@ -1397,9 +1397,11 @@ WITH {LOCAL|CASCADE} CHECK OPTION;
 
 ---
 
-### Условное выражение CASE
+### Условное выражение CASE WHEN:
 
 * Представляет собой общее условное выражение, напоминающее операторы **if/else** в других языках программирования:
+
+**Синтаксис**:
 
 ```
 CASE WHEN condition_1 THEN result_1 - if
@@ -1410,7 +1412,7 @@ END
 ```
 
 * **condition** - условие, возвращающее **bool**.
-* **result** - результат или действие в случае с **PL**\**pgSQL**.
+* **result** - результат или действие в случае с **PL** \ **pgSQL**.
 
 В данном случае будет дополнительный столбец `amount` со значениями, соответствующими условиям:
 
@@ -1426,9 +1428,9 @@ FROM products;
 
 ---
 
-### Условные выражения COALESCE и NULLIF
+### Условные выражения COALESCE и NULLIF:
 
-* **COALESCE**(`arg1`, `arg2`, ...); - принимает N аргументов и возвращает первый **!=NULL элемент**.   
+* **COALESCE**(`arg1`, `arg2`, ...); - принимает N аргументов одного типа и возвращает первый **!=NULL элемент**.   
   В случае, если все аргументы **NULL**, вернёт **NULL**.
 
 ```
@@ -1444,3 +1446,578 @@ LIMIT 10;
 SELECT contact_name, COALESCE(NULLIF(city, ''), 'Unknown') as city - Если city == '', то будет 'Unknown', иначе будет city.
 FROM customers;
 ```
+
+---
+
+### Функции в SQL:
+
+* **Функции** - объект БД, принимающий аргументы и возвращающий результат.
+
+* **Функции** (хранимые процедуры) - компилируемы и хранятся на стороне БД, поэтому их вызов стоит дёшево.
+
+* Возможно управлять безопасностью через регулирования доступа к **функциям**.
+
+
+* Могут содержать **CRUD** (CREATE READ UPDATE DELETE) операции, как **SELECT**, **INSERT**, **UPDATE**, **DELETE**, ...
+
+* Не могут содержать **COMMIT**, **SAVEPOINT** (TCL), **VACUUM** (utility).
+
+**Делятся на**:
+
+* SQL-функции.
+* Процедурные (PL/pgSQL).
+* Серверные функции (написанные на С) - редко.
+* Собственные С-функции - редко.
+
+**Синтаксис**:
+
+```
+CREATE [OR REPLACE] FUNCTION func_name(arg1 data_type, arg2 data_type,...) RETURNS data_type AS $$ 	 
+    --logic
+$$ LANGUAGE sql
+```
+
+* `$$` - открывают и закрывают тело функции (до 8 версии использовали кавычки).
+
+* Изменение `REPLACE` **функции** имеет примерно такие же ограничения, что и **VIEW**:
+
+**Вызов функции**:
+
+```
+SELECT func_name(arg1, arg2) AS something;
+```
+
+**Пример**:
+
+```
+CREATE FUNCTION fix_customer_region() RETURNS void AS $$ - void == не выводит ничего
+    UPDATE orders
+    SET ship_region = COALESCE(NULLIF(ship_region, NULL),'unknown')
+$$ LANGUAGE sql;
+
+SELECT fix_customer_region();
+```
+
+**Примеры функций**:
+
+* `date_part('month', data_date);` - выведет номер месяца из `data_date`.
+
+* `to_char();` - переводит всё в строку (смотреть документацию).
+
+---
+
+### Скалярные функции в SQL:
+
+* Функции, которые выводят единственное значение (**varchar**, **bigint**, ...).
+
+```
+CREATE FUNCTION get_total_number_of_goods() RETURNS bigint AS $$   
+    SELECT SUM(units_in_stock)
+    FROM products
+$$ LANGUAGE sql;
+
+SELECT get_total_number_of_goods() AS goods_cnt;
+```
+
+---
+
+### Аргументы функции в SQL:
+
+* **IN** - входящие аргументы.
+* **OUT** - исходящие аргументы.
+* **INOUT** - и входящий, и исходящий аргумент.
+* **DEFAULT** value - значение по умолчанию.
+* **VARIADIC** - массив входящих параметров.
+
+**IN**:
+
+```
+CREATE OR REPLACE FUNCTION get_product_price_by_name([IN] prod_name varchar) RETURNS real AS $$
+    SELECT unit_price
+    FROM products
+    WHERE product_name = prod_name
+$$ LANGUAGE sql;
+
+SELECT get_product_price_by_name('Chocolade'); - выведет цену за товар под названием Chocolade.
+```
+
+**OUT**:
+
+```
+CREATE OR REPLACE FUNCTION get_price_boundaries(OUT max_price real, OUT min_price real) AS $$
+    SELECT MAX(unit_price), MIN(unit_price) - записываются в указанные аргументы по порядку.
+    FROM products
+$$ LANGUAGE sql;
+
+SELECT get_price_boundaries(); - выведет информацию в формате (data1, data2), где data1 = max_price и data2 = min_price.
+
+SELECT * FROM get_price_boundaries(); - разобьёт данные по колонкам с соответствующими названиями.
+```
+
+**DEFAULT**:
+
+```
+CREATE OR REPLACE FUNCTION get_price_boundaries_by_discontinuity(IN is_discontinued int DEFAULT 1, OUT max_price real, OUT min_price real) AS $$
+    SELECT MAX(unit_price), MIN(unit_price)
+    FROM products
+    WHERE discontinued = is_discontinued
+$$ LANGUAGE sql;
+
+SELECT get_price_boundaries_by_discontinuity([1]);
+```
+
+---
+
+### Функции, возвращающие множество строк:
+
+* **RETURNS SETOF data_type** - возврат n-значений типа `data_type` (1 столбец).
+
+
+* **RETURNS SETOF RECORD** - позволяет возвращать строки с несколькими столбцами разных типов.
+
+
+* **RETURNS SETOF table_name** - если нужно вернуть все столбцы из таблицы или пользовательского типа.
+
+
+* **RETURNS TABLE (column1_name data_type, ...)** - то же, что и **SETOF table_name**, но есть возможность явно указать
+  возвращаемые столбцы.
+
+
+* Возврат через **OUT-параметры**.
+
+**RETURNS SETOF data_type**:
+
+```
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories() RETURNS SETOF double precision AS $$
+    SELECT AVG(unit_price)
+    FROM products
+    GROUP BY category_id
+$$ LANGUAGE sql;
+
+SELECT * FROM get_average_prices_by_product_categories()
+```
+
+**RETURNS SETOF RECORD**:
+
+```
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories(OUT sum_price real, OUT avg_price float) RETURNS SETOF RECORD AS $$
+    SELECT SUM(unit_price), AVG(unit_price)
+    FROM products
+    GROUP BY category_id
+$$ LANGUAGE sql;
+
+SELECT * FROM get_average_prices_by_product_categories(); - выведет все столбцы, что мы указалаи в аргументах, как OUT.
+
+SELECT sum_price FROM get_average_prices_by_product_categories(); - выведет только столбец sum_price.
+```
+
+**RETURNS SETOF RECORD (случай без OUT)**:
+
+```
+CREATE OR REPLACE FUNCTION get_average_prices_by_product_categories() RETURNS SETOF RECORD AS $$
+    SELECT SUM(unit_price), AVG(unit_price)
+    FROM products
+    GROUP BY category_id
+$$ LANGUAGE sql;
+                                                         
+SELECT * FROM get_average_prices_by_product_categories() AS (sum_price real, avg_price float8); - рабочий, но не очень удобный способ.
+                                                         ^ Так необходимо делать обязательно ^
+```
+
+**RETURNS SETOF table_name**:
+
+```
+CREATE OR REPLACE FUNCTION get_customers_by_country(customer_country varchar) RETURNS SETOF customers AS $$
+    SELECT * - нужно выбрать все столбцы, иначе работать не будет
+    FROM customers
+    WHERE country = customer_country
+$$ LANGUAGE sql;
+
+SELECT * FROM get_customers_by_country('USA');
+
+SELECT contact_name FROM get_customers_by_country('USA');
+```
+
+**RETURNS TABLE**:
+
+```
+CREATE OR REPLACE FUNCTION get_customers_by_country(customer_country varchar) RETURNS TABLE(char_code char, company_name varchar) AS $$
+    SELECT customer_id, company_name - выводим то, что указали ранее.
+    FROM customers
+    WHERE country = customer_country
+$$ LANGUAGE sql;
+
+SELECT * FROM get_customers_by_country('USA'); - выведет таблицу из двух столбцов char_code и company_name.
+```
+
+---
+
+### Функции PL/pgSQL (Procedural Language/PostgreSQL):
+
+**Преимущество над функциями в SQL**:
+
+* Можно создавать переменные.
+
+* Можно создавать циклы.
+
+* Возврат значения через **RETURN** (вместо **SELECT**) или **RETURN QUERY** (в дополнение к **SELECT**).
+
+**Синтаксис**:
+
+```
+CREATE [OR REPLACE] FUNCTION func_name(arg1 data_type, arg2 data_type,...) RETURNS data_type AS $$ 
+BEGIN 
+    --logic
+END[;]
+$$ LANGUAGE plpgsql
+```
+
+* **BEGIN** / **END** - тело метода (дело не в транзакциях).
+
+**Скалярные функции в PL/pgSQL**:
+
+* Функции, которые выводят единственное значение (**varchar**, **bigint**, ...).
+
+```
+CREATE OR REPLACE FUNCTION get_total_number_of_goods() RETURNS bigint AS $$
+BEGIN   
+    RETURN SUM(units_in_stock)
+    FROM products;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_total_number_of_goods();
+```
+
+**Аргументы функции в PL/pgSQL**:
+
+* Работа с аргументами почти вся аналогична обычным **SQL-функциям**.
+
+**IN**:
+
+```
+CREATE OR REPLACE FUNCTION get_sum([IN] x int, [IN] y int, OUT result int) AS $$
+BEGIN
+    result := x + y;
+    RETURN; - используется, чтобы досрочо выйти из функции.
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_sum(2,3);
+```
+
+* `:=` - то же самое, что и `=`, но `=` ещё работает как сравнение (`==`), что может запутать.
+
+**OUT**:
+
+```
+CREATE OR REPLACE FUNCTION get_price_boundaries(OUT max_price real, OUT min_price real) AS $$
+BEGIN      
+    max_price := MAX(unit_price) FROM products; 
+    min_price := MIN(unit_price) FROM products;     
+ИЛИ 
+    SELECT MAX(unit_price), MIN(unit_price)
+    INTO max_price, min_price
+FROM products;
+
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM get_total_number_of_goods();
+```
+
+**Возврат наборов данных**:
+
+**RETURNS SETOF**:
+
+```
+CREATE OR REPLACE FUNCTION get_customers_by_country(IN customer_country varchar) RETURNS SETOF customers AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * 
+    FROM customers
+    WHERE country = customer_country;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM get_customers_by_country('USA'); 
+```
+
+---
+
+### Декларация переменных в функциях PL/pgSQL:
+
+Одно из благ **PL/pgSQL** это возможность декларировать переменные внутри функций.
+
+**Синтаксис**:
+
+```
+CREATE [OR REPLACE] FUNCTION func_name(arg1 data_type, arg2 data_type,...) RETURNS data_type AS $$ 
+DECLARE
+    var_name data_type;
+BEGIN 
+    --logic
+END[;]
+$$ LANGUAGE plpgsql
+```
+
+**Примеры**:
+
+```
+CREATE OR REPLACE FUNCTION get_triangle_square(ab real, bc real, ac real) RETURNS real AS $$
+DECLARE
+    perimetr_half real;
+BEGIN
+    perimetr_half := (ab + bc + ac) / 2;
+    RETURN sqrt(perimetr_half * (perimetr_half - ab) * (perimetr_half - bc) * (perimetr_half - ac));
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM get_triangle_square(3, 4, 5);
+```
+
+```
+CREATE OR REPLACE FUNCTION calc_middle_price() RETURNS SETOF products AS $$
+DECLARE
+    avg_price real;
+    low_price real;
+    high_price real;
+BEGIN
+    SELECT AVG(unit_price)
+    INTO avg_price
+    FROM products;
+    
+    low_price = 0.75 * avg_price;
+    high_price = 1.25 * avg_price;
+    
+    RETURN QUERY
+    SELECT *
+    FROM products
+    WHERE unit_price BETWEEN low_price AND high_price;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM calc_middle_price();
+```
+
+---
+
+### Логические ветвления (IF/ELSE) в функциях PL/pgSQL:
+
+**Синтаксис**:
+
+```
+IF expression1 THEN
+    -- logic
+ELS[E]IF expression2 THEN
+    -- logic
+ELSE
+    -- logic
+END IF;
+```
+
+**Пример**:
+
+```
+CREATE OR REPLACE FUNCTION temp_convert(IN temperature real, to_celsius bool DEFAULT true) RETURNS real AS $$
+DECLARE
+	converted_temp real;
+BEGIN
+	IF to_celsius THEN
+		converted_temp := (5.0/9.0) * (temperature - 32);
+	ELSE
+		converted_temp := temperature * (9.0/5.0) + 32;
+	END IF;
+	RETURN converted_temp;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+### Циклы в функциях PL/pgSQL:
+
+* **WHILE**:
+
+```
+WHILE expression
+LOOP
+    --logic
+END LOOP;
+```
+
+**Пример**:
+
+```
+CREATE OR REPLACE FUNCTION fib_num(IN num int) RETURNS int AS $$
+DECLARE
+    counter int = 0;
+    i int = 1;
+    j int = 1;
+BEGIN
+    IF num < 1 THEN
+        RETURN 0;
+    ELSE
+        WHILE counter < num - 1
+        LOOP
+			counter = counter + 1;
+        	SELECT j, i+j
+        	INTO i, j; 
+        END LOOP;
+        RETURN i;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM fib_num(3);
+```
+
+* **EXIT WHEN**:
+
+```
+LOOP
+    EXIT WHEN expression;
+    --logic
+END LOOP;
+```
+
+**Пример**:
+
+```
+CREATE OR REPLACE FUNCTION fib_num(IN num int) RETURNS int AS $$
+DECLARE
+    counter int = 0;
+    i int = 1;
+    j int = 1;
+BEGIN
+    IF num < 1 THEN
+        RETURN 0;
+    ELSE
+        LOOP
+			EXIT WHEN counter >= num - 1;
+			counter = counter + 1;
+        	SELECT j, i+j
+        	INTO i, j; 
+        END LOOP;
+        RETURN i;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM fib_num(2);
+```
+
+* **FOR**:
+
+```
+FOR counter IN [REVERSE] a..b [BY step_num]
+LOOP
+    --logic
+END LOOP;
+```
+
+**Пример**:
+
+```
+CREATE OR REPLACE FUNCTION fib_num(IN num int) RETURNS int AS $$
+DECLARE
+    i int = 1;
+    j int = 1;
+BEGIN
+    IF num < 1 THEN
+        RETURN 0;
+    ELSE    
+        FOR counter in 0..num-2 [BY 1]
+        LOOP
+        	SELECT j, i+j, counter+1 
+        	INTO i, j, counter; 
+        END LOOP;
+        RETURN i;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM fib_num(3);
+```
+
+* **Внутренние функции**:
+
+`EXIT [WHEN expression]` - досрочный выход из цикла (**break**) при условии.
+
+`CONTINUE WHEN expression` - переход на следующую итерацию цикла (**continue**) при условии.
+
+---
+
+### Анонимный блок кода DO:
+
+* Блок кода воспринимается, как если бы это было тело функции, которая **не имеет параметров** и **возвращает void**.
+
+* Этот код разбирается и выполняется **один раз**.
+
+* Есть часть **PL/pgSQL**.
+
+```
+DO $$
+BEGIN
+    --logic
+END $$;
+```
+
+**Пример**:
+
+```
+DO $$
+BEGIN
+    FOR counter IN 1..5 BY 2
+    LOOP
+        RAISE NOTICE 'Counter:  %', counter; - вывод сообщение в Messages.
+    END LOOP;
+END $$;
+```
+
+---
+
+### RETURN NEXT в функциях PL/pgSQL:
+
+* Является чем-то наподобие **yield** в **python**, те добавляет данные в результирующий набор (выводит в случае с
+  **python**), а после продолжает работу функции.
+
+* По большому счету дерьмо из-за производительности и почти нигде не используется.
+
+**Примеры**:
+
+```
+CREATE OR REPLACE FUNCTION return_ints() RETURNS SETOF int AS $$
+BEGIN
+    RETURN NEXT 1;
+    RETURN NEXT 2;
+    RETURN NEXT 3;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT return_ints(); - будет выведен столбец с 3 записями (строками).
+```
+
+```
+CREATE OR REPLACE FUNCTION after_christmas_sale() RETURNS SETOF products AS $$
+DECLARE
+    product record; - record == запись (строчка).
+BEGIN
+    FOR product IN SELECT * FROM products - product является копией строчки из products.
+    LOOP
+        IF product.category_id IN (1, 4, 8) THEN
+            product.unit_price = product.unit_price * 0.8;
+        ELSEIF product.category_id IN (2, 3, 7) THEN
+            product.unit_price = product.unit_price * 0.75;
+        ELSE
+            product.unit_price = product.unit_price * 1.1;     
+        END IF;
+        RETURN NEXT product;               
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM after_christmas_sale();
+```
+
+---
