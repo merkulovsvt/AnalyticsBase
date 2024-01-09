@@ -2021,3 +2021,131 @@ SELECT * FROM after_christmas_sale();
 ```
 
 ---
+
+### Обработка ошибок EXCEPTION:
+
+* Для выбрасывания сообщений (в **Messages**) используется **RAISE**.
+
+* Для обработки ошибок (поимки исключений) используется хэндлер **EXCEPTION**. Он доступен только в **PL**/**pgSQL**
+  функциях.
+
+**Синтаксис**:
+
+```
+RAISE {LEVEL} 'message %', arg_name; - выбрасывание сообщения, соответствующего уровня.
+```
+
+```
+EXCEPTION WHEN {SQLSTATE 'num'|OTHERS} THEN handling_logic; - обработка ошибки.
+```
+
+**Уровни**:
+
+* **LEVEL** - уровень серьёзности сообщения:
+    * `DEBUG` - отладка.
+    * `LOG` - лог.
+    * `INFO` - информация.
+    * `NOTICE` - замечание.
+    * `WARNING` - потенциальная опасность.
+    * `EXCEPTION` - исключение / ошибка (абортирует текущую транзакцию).
+
+
+* В этом блоке мы работаем с `EXCEPTION`.
+
+**Параметры сервера**:
+
+* **log_min_messages** регулирует уровень сообщений, которые будут писать в лог сервера (**WARNING** - по умолчанию).
+
+* **client_min_messages** регулирует уровень сообщений, которые будут передаваться вызывающей стороне (**NOTICE** - по
+  умолчанию).
+
+**Параметры RAISE**:
+
+* **HINT** - подсказка для решения проблемы.
+
+* **ERRCODE** - особый номер ошибки (от `'00000'` до `'99999'`).
+
+* Параметры присоединяются с помощью **USING**:
+
+```
+RAISE EXCEPTION 'Invalid billing number: %', number USING HINT = 'Check out the billing number', ERRCODE='12881';
+```
+
+**Примеры**:
+
+* Отправка исключения
+
+```
+CREATE OR REPLACE FUNCTION get_season(month_number int) RETURNS text AS $$
+BEGIN
+    IF month_number > 12 OR month_number < 1 THEN 
+        RAISE EXCEPTION 'Invalid month. You passed: (%)', month_number 
+        USING HINT = 'Allowed from 1 to 12', ERRCODE='12881'; - выбрасываем ошибки с параметрами.
+	END IF;
+	
+    IF month_number BETWEEN 3 AND 5 THEN
+        RETURN 'Spring';
+    ELSIF month_number BETWEEN 6 AND 8 THEN
+        RETURN 'Summer';
+    ELSIF month_number BETWEEN 9 AND 11 THEN
+        RETURN 'Autumn';
+    ELSE
+        RETURN 'Winter';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_season(13);
+```
+
+* Поимка и обработка исключения:
+
+```
+CREATE OR REPLACE FUNCTION get_season_caller(month_number int) RETURNS text AS $$
+BEGIN
+	RETURN get_season(month_number); - эта строчка может выбросить EXCEPTION, поэтому сделаем обработчик.
+	EXCEPTION 
+	WHEN SQLSTATE '12881' THEN
+		RAISE INFO 'A problem, nothing special.';
+		RAISE INFO 'Error msg: %', SQLERRM;
+		RAISE INFO 'Error code: %', SQLSTATE;
+		RETURN NULL;
+	WHEN OTHERS THEN - обработка всех остальных исключений.
+	    RAISE INFO 'All other exceptions.';
+	    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_season_caller(13);
+```
+
+* Вывод дополнительных данных ошибки при помощи **GET STACKED DIAGNOSTICS**:
+
+```
+CREATE OR REPLACE FUNCTION get_season_caller(month_number int) RETURNS text AS $$
+DECLARE
+	err_ctx text;
+	err_msg text;
+	err_details text;
+	err_code text;
+BEGIN
+	RETURN get_season(month_number); - эта строчка потенциально может выбросить EXCEPTION, поэтому сделаем обработчик.
+	EXCEPTION 
+	WHEN SQLSTATE '12881' THEN
+		GET STACKED DIAGNOSTICS
+			err_ctx = PG_EXCEPTION_CONTEXT,
+			err_msg = MESSAGE_TEXT,
+			err_details	= PG_EXCEPTION_DETAIL,
+			err_code = RETURNED_SQLSTATE;
+			
+		RAISE INFO 'My custome handler:';
+		RAISE INFO 'Error msg: %', err_msg;
+		RAISE INFO 'Error details: %', err_details;
+		RAISE INFO 'Error code: %', err_code;
+		RAISE INFO 'Error ctx: %', err_ctx;
+		RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_season_caller(13);
+```
