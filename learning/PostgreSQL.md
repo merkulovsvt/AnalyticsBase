@@ -37,7 +37,7 @@
 
 * Команды (операторы) по соглашению нужно прописывать с **заглавной** буквы, а названия таблиц, ... с **маленькой**.
 
-* Для того, чтобы экранировать внутреннюю кавычку необходимо добавить перед ней ещё одну - **'something''wasd'**.
+* Для того чтобы экранировать внутреннюю кавычку, необходимо добавить перед ней ещё одну - **'something''wasd'**.
 
 ---
 
@@ -1122,7 +1122,7 @@ INSERT INTO table_name (column1_name, ...)
 VALUES ();
 ```
 
-* Cоздаём новую таблицу `best_authors` с данными из `author` при условии `rating > 4`.
+* Создаём новую таблицу `best_authors` с данными из `author` при условии `rating > 4`.
 
 ```
 SELECT *
@@ -1851,7 +1851,7 @@ END LOOP;
 ```
 CREATE OR REPLACE FUNCTION fib_num(IN num int) RETURNS int AS $$
 DECLARE
-    counter int = 0;
+    counter int = 0; - задание значения по умолчанию.
     i int = 1;
     j int = 1;
 BEGIN
@@ -2149,3 +2149,350 @@ $$ LANGUAGE plpgsql;
 
 SELECT get_season_caller(13);
 ```
+
+### Приведение типов данных
+
+**Безопасность типов**:
+
+* **SQL** - строго **типизированный** язык.
+
+* Разрешена **перегрузка** функций (одно название, разные типы аргументов).
+
+* Если типы между собой совместимы - интерпретатор старается произвести неявное преобразование (автоматическое
+  преобразование данных одного типа в данные другого типа на основе встроенного набора правил преобразования).
+
+* Для **неявного** преобразования от нас ничего не требуется.
+
+* Для **явного** преобразования используется:
+    * `CAST(expression AS target_type)` - совместимо с **SQL-стандартом**.
+    * `expression:target_type` - несовместимо с **SQL-стандартом**.
+
+**Пример**:
+
+```
+CREATE OR REPLACE FUNCTION type_testing(number int) RETURNS void AS $$
+BEGIN
+    RAISE NOTICE 'zaza number is %', number;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT type_testing(CAST(1.9 AS int));
+SELECT type_testing('3'::int); - перевод строки c целым числом в целое число.
+SELECT type_testing('1.5'::numeric::int); - перевод строки c вещественным числом в целое число.
+```
+
+### Индексы
+
+* Это структура данных, ускоряющая выборку из таблицы за счет дополнительных операций записи и пространства на диске,
+  используемых для хранения структуры данных и поддержания её в актуальном состоянии.
+
+* Гарантий, что будет использован именно индексный поиск нет. Всё зависит от запроса.
+
+
+* **Индекс** - объект БД, который можно создавать и удалять.
+
+* Позволяет искать значения без полного перебора.
+
+* По **PRIMARY KEY** и **UNIQUE** столбцам индекс создаётся автоматически.
+
+**Методы сканирования**:
+
+* Индексное (**index scan**)
+
+* Исключительно индексное сканирование (**index only scan**)
+
+* Сканирование по битовой карте (**bitmap scan**)
+
+* Последовательное сканирование (**sequential scan**)
+
+
+* Метод сканирование выбирается системой автоматически
+
+* Индексное сканирование будет применяться к запросу, где не много данных, что нельзя сказать про последовательное
+  (проход по всем).
+
+**Виды индексов**:
+
+```
+SELECT amname FROM pg_am; - выведет список всех доступных видов индексов на сервере
+```
+
+* **B-tree** (сбалансированное дерево)
+
+* **HASH**
+
+* **GiST** (обобщенное дерево поиска)
+
+* **GIN** (обобщенный обратный)
+
+* **SP-GiST** (GiST с двоичным разбиением пространства)
+
+* **BRIN** (блочно-диапазонный)
+
+**B-tree**:
+
+* Создаётся по умолчанию `CREATE INDEX index_name ON table_name (column_name);`.
+
+* Поддерживает операции **<**, **>**, **<=**, **>=**, **=**.
+
+* Поддерживает `LIKE 'abc%'` (но не `'%abc'`).
+
+* Индексирует **NULL**.
+
+* Сложность поиска **O(logN)**.
+
+**HASH**:
+
+* `CREATE INDEX index_name ON table_name USING HASH (column_name);`.
+
+* Поддерживает только операцию **=**.
+
+* Не рекомендуется к применению (в общем и целом).
+
+* Сложность поиска **O(1)**.
+
+**EXPLAIN**:
+
+* Если есть проблемы с производительностью надо понять "откуда растут ноги".
+
+* `EXPLAIN query` позволяет посмотреть на план выполнения запроса.
+
+* `EXPLAIN ANALYZE query` выполняет запрос, показывает план и реальность.
+
+**ANALYZE**:
+
+* Собирает статистику по данным таблицы.
+
+* Планировщик смотрит на статистику при построении плана.
+
+* `ANALYZE [table_name[(column1_name, column2_name, ...)]]` - сбор статистики.
+
+**Примеры**:
+
+* Создаём таблицу с рандомными данными:
+
+```
+DROP TABLE IF EXISTS test;
+
+CREATE TABLE test
+(
+	id int,
+	reason text,
+	annotation text 
+);
+
+INSERT INTO test(id, reason, annotation)
+SELECT s.id, md5(random()::text), UPPER(md5(random()::text)) - хеш в верхнем регистре от рандомного числа между 0 и 1.
+FROM generate_series(1,10000000) AS s(id); - присваиваем послед-ти generate_series псевдоним s с названием столбца id.
+```
+
+* **INDEX** по одному столбцу:
+
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM test
+WHERE id = 3100000;
+
+CREATE INDEX idx_test_id ON test(id); - ускорит запрос с 790мс до 53мс (поменяется метод сканирования).
+```
+
+* **INDEX** по двум столбцам:
+
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM test
+WHERE reason LIKE 'ac3%' AND annotation LIKE 'AC2%';
+
+CREATE INDEX idx_test_reason_annotation ON test(reason, annotation); - этот INDEX будет работать ещё для выборок по первыму из столбцов.
+```
+
+* **INDEX** по выражениям:
+
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM test
+WHERE LOWER(annotation) LIKE 'ac23b%';
+
+CREATE INDEX idx_test_annotation_lower ON test(LOWER(annotation));
+```
+
+* **INDEX** для поиска по тексту:
+
+```
+EXPLAIN ANALYZE
+SELECT *
+FROM test
+WHERE reason LIKE '%bca%';
+
+CREATE EXTENSION pg_trgm; - подключение расширения
+
+CREATE INDEX trgm_idx_test_reason ON test USING GIN (reason gin_trgm_ops); 
+```
+
+---
+
+### Массивы
+
+* Массив - коллекция данных одного типа.
+
+* Столбцы и переменные могут объявляться как массив.
+
+* Массивы могут быть многомерными.
+
+**Задание массивов**:
+
+* SQL-стандарт:
+    * `array_name int ARRAY;`
+    * `array_name int ARRAY[size_num];`
+
+
+* Postgres:
+    * `array_name int[];`
+    * `array_name int[size_num];`
+
+
+* Явно указанный размер ни на что не влияет.  
+  Он чисто для документации.
+
+**Инициализация массивов**:
+
+* `'{"a", "b", "c"}'` или `ARRAY['a', 'b', 'c']`.
+
+
+* `'{1, 2, 3}'` или `ARRAY[1, 2, 3]`.
+
+
+* `'{{1, 2, 3}, {1, 2, 3}, {1, 2, 3}}'` или `ARRAY[[1,2,3], [1,2,3], [1,2,3]]`.
+
+**Обращение к массивам**:
+
+* `array_name[index]` - взятие элемента по индексу (от 1).
+
+
+* `array_dims(array_name)` - возвращает размерность массива.
+
+
+* `array_length(array_name, array_dim)` - возвращает длину массива.
+
+
+* Слайсинг (срезы):
+    * `array_name[1:3]` - с 1 по 3 элемент.
+    * `array_name[:4]` - с 1 по 4 элемент.
+    * `array_name[2:]` - со 2 по последний элемент.
+
+Массивы - это не множества; необходимость поиска определенных элементов в массиве может быть признаком неудачно
+сконструированной базы данных. Возможно, вместо массива лучше использовать отдельную таблицу, строки которой будут
+содержать данные элементов массива. Это может быть лучше и для поиска, и для работы с большим количеством элементов.
+
+**Примеры**:
+
+* Создание таблицы:
+
+```
+DROP TABLE IF EXISTS chess_game;
+
+CREATE TABLE chess_game (
+	white_player text,
+	black_player text,
+	moves text[],
+	final_state text[][]
+);
+
+INSERT INTO chess_game (white_player, black_player, moves, final_state)
+VALUES ('Svyatoslav', 'Nina', '{"d4", "d5", "c4", "c6"}', ARRAY[
+           ['Ra8', 'Qe8', 'x', 'x', 'x', 'x', 'x', 'x'],
+           ['a7', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+           ['Kb5', 'Bc5', 'd5', 'x', 'x', 'x', 'x', 'x']]);
+		   
+SELECT moves[3:]
+FROM chess_game;
+
+SELECT array_dims(moves), array_dims(final_state)
+FROM chess_game;
+
+SELECT array_length(moves, 1), array_length(final_state, 1), array_length(final_state, 2)
+FROM chess_game;
+```
+
+* **UPDATE** в массивах:
+
+```
+UPDATE chess_game
+SET moves = '{"e4", "d6", "d4", "kf6"}'; - замена всего массива.
+
+UPDATE chess_game
+SET moves[2] = 'g6'; - замена элемента массива.
+```
+
+* **Поиск** в массивах:
+
+```
+SELECT *
+FROM chess_game
+WHERE 'g6' = ANY(moves);
+```
+
+**Операторы в массивах**:
+
+* Операторы сравнения:
+    * **=** `true` если совпадают значения и их последовательность.
+    * **>** `true` если в первой неравной паре, элемент слева больше.
+    * **<** `true` если в первой неравной паре, элемент слева меньше.
+
+* Containment-операторы:
+    * **@>** `true` если правый массив включает все элементы левого.
+    * **@<** `true` если левый массив включает все элементы правого.
+
+* Оператор пересечения:
+    * **&&** `true` если массивах хотя бы один одинаковый элемент.
+
+```
+SELECT *
+FROM chess_game
+WHERE moves && ARRAY['g6'];
+```
+
+---
+
+### VARIADIC (*args):
+
+* Чтобы передавать n параметров (одного типа) в функцию, нужно объявить аргумент как **VARIADIC**:  
+  `VARIADIC arg_name data_type[]`
+
+```
+CREATE OR REPLACE FUNCTION filter_even(VARIADIC numbers int[]) RETURNS SETOF int AS $$
+BEGIN
+    FOR counter IN 1..array_length(numbers, 1)
+    LOOP
+        IF numbers[counter] % 2 = 0 THEN
+            RETURN NEXT numbers[counter];
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT filter_even(1, 6, 3, 5, 12);
+```
+
+* Вместо стандартного **FOR** можно использовать **FOREACH**:
+
+```
+CREATE OR REPLACE FUNCTION filter_even(VARIADIC numbers int[]) RETURNS SETOF int AS $$
+DECLARE
+    iter int;
+BEGIN
+    FOREACH iter in ARRAY numbers
+    LOOP
+        CONTINUE WHEN iter % 2 = 1;
+        RETURN NEXT iter;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT filter_even(1, 6, 3, 5, 12);
+```
+
+--- 
