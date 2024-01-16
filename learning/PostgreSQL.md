@@ -405,10 +405,12 @@ FROM table2_name
 
 
 * **INTERSECT** - пересечение (удаляет дубликаты).
+
 * **INTERSECT ALL** - пересечение (не удаляет дубликаты).
 
 
 * **EXCEPT** - исключение (возвращает первую выборку без второй и удаляет дубликаты).
+
 * **EXCEPT ALL** - **EXCEPT** + разница между количеством единых дубликатов выборок, если в первой их больше (10 в
   первой и 6 во второй, то в конечной будет 4 элемента) + не удаляет дубликаты.
 
@@ -515,7 +517,7 @@ employee_id int PRIMARY KEY,
 first_name varchar(256) NOT NULL,
 last_name varchar(256) NOT NULL,
 manager_id int,
-FOREIGN KEY (manager_id) REFERENCES employee(employee_id); - указатель на то, что SELF JOIN возможен
+FOREIGN KEY (manager_id) REFERENCES employee(employee_id) - указатель на то, что SELF JOIN возможен
 );
 ```
 
@@ -525,7 +527,7 @@ INSERT INTO employee
 VALUES
 (1, 'Windy', 'Hays', NULL),
 (2, 'Ava', 'Christensen', 1),
-(3, 'Anna', 'Reeves', 2),
+(3, 'Anna', 'Reeves', 2);
 ```
 
 ```
@@ -536,7 +538,7 @@ LEFT JOIN employee m ON m.employee_id = e.manager_id
 ORDER BY manager;
 ```
 
-Выведет слева ФИ сотрудника, а справа ФИ его менеджера.
+* Выведет слева ФИ сотрудника, а справа ФИ его менеджера.
 
 ---
 
@@ -579,7 +581,7 @@ JOIN table2_name [AS] new_tb2 ON new_tb1.id = new_tb2.id
 
 ---
 
-### Подзапросы
+### Подзапросы (SubQuery)
 
 **Зачем они нужны?**
 
@@ -1405,10 +1407,11 @@ WITH {LOCAL|CASCADE} CHECK OPTION;
 **Синтаксис**:
 
 ```
-CASE WHEN condition_1 THEN result_1 - if
-     WHEN condition_2 THEN result_2 - elif
-     [WHEN...]
-     [ELSE result_n]
+CASE 
+    WHEN condition_1 THEN result_1 - if
+    WHEN condition_2 THEN result_2 - elif
+    [WHEN...]
+    [ELSE result_n]
 END
 ```
 
@@ -1419,10 +1422,11 @@ END
 
 ```
 SELECT product_name, unit_price, units_in_stock,
-    CASE WHEN units_in_stock >= 100 THEN 'lots of'
-         WHEN units_in_stock >= 50 THEN 'average'
-         WHEN units_in_stock < 50 THEN 'low number'
-         ELSE 'unknown'
+    CASE 
+        WHEN units_in_stock >= 100 THEN 'lots of'
+        WHEN units_in_stock >= 50 THEN 'average'
+        WHEN units_in_stock < 50 THEN 'low number'
+        ELSE 'unknown'
     END AS amount
 FROM products;
 ```
@@ -2904,9 +2908,259 @@ psql --host=localhost --port=5432 [--dbname=postgres] --username=postgres - ко
 2. Открываем **psql** и заходим в нужную нам **БД**.
 
 
-3. `\copy table_name(fields) FROM 'csv_file_path' DELIMITER ',' CSV HEADER;` - копируем данные в созданную таблицу.
+3. `\copy table_name(fields) FROM 'csv_file_path' DELIMITER ',' [CSV HEADER];` - копируем данные в созданную таблицу.
 
 * В некоторых **.csv-файлах** есть заголовок с названиями столбцов.
   **CSV HEADER** - даёт серверу понять, что первую строчку копировать не надо.
 
 ---
+
+### Common Table Expressions (CTE)
+
+* Позволяют строить временные таблицы (или представления) в рамках большого запроса.
+
+* Присваивая имя такой временной таблице (подзапросу), мы можем её переиспользовать.
+
+* Внутри подзапроса можно использовать **INSERT**, **UPDATE**, **DELETE**.
+
+* **CTE** выполняется единожды, результат кешируется (не всегда, см план выполнения).
+
+* Длинные и сложные запросы можно отрефакторить в **CTE**, повышая чистоту и читабельность кода.
+
+**Синтаксис**:
+
+```
+WITH name AS (
+    SELECT clause
+)
+SELECT ...;
+```
+
+**Примеры**:
+
+```
+WITH customer_countries AS 
+(
+	SELECT country FROM customers
+)
+SELECT company_name
+FROM suppliers
+WHERE country IN (SELECT * FROM customer_countries);
+```
+
+* Использование нескольких **CTE**
+
+```
+WITH name1 AS 
+(...),
+name2 AS
+(...),
+...
+```
+
+**Рекурсивный CTE**:
+
+* Создаём таблицу и вставляем данные:
+
+```
+CREATE TABLE employee (
+	employee_id int PRIMARY KEY,
+	first_name varchar NOT NULL,
+	last_name varchar NOT NULL,
+	manager_id int,
+	FOREIGN KEY (manager_id) REFERENCES employee(employee_id)
+);
+
+INSERT INTO employee
+(employee_id, first_name, last_name, manager_id)
+VALUES
+(1, 'Windy', 'Hays', NULL),
+(2, 'Ava', 'Christensen', 1),
+(3, 'Anna', 'Reeves', 2);
+```
+
+* Иерархический вывод сотрудников с помощью [рекурсивного **CTE**](https://eax.me/postgresql-recursive-queries/):
+
+```
+WITH RECURSIVE submission(sub_line, employee_id) AS - задаём рекурсию с 2 столбами.
+(
+	SELECT last_name, employee_id FROM employee WHERE manager_id IS NULL - начальная часть.
+	UNION ALL - после этого идёт рекурсивная часть.
+	SELECT sub_line || ' -> ' || e.last_name, e.employee_id
+	FROM submission s
+	JOIN employee e ON e.manager_id = s.employee_id
+)
+SELECT * FROM submission;
+```
+
+---
+
+### Оконные функции
+
+* Позволяют обрабатывать группы строк без образования группировок в результирующем наборе.
+
+* Очень крутая возможность современного **SQL**.
+
+
+* Отрабатывают после **JOIN**, **WHERE**, **GROUP BY**, **HAVING**, но после **ORDER BY**.
+
+* Делятся на:
+    * Агрегатные функции - **MIN**, **MAX**, **COUNT**, **SUM**, **AVG**.
+    * Функции ранжирования - **ROW_NUMBER**, **RANK**, **LAG**, **LEAD**.
+
+**Синтаксис**:
+
+```
+function OVER ([expression])
+```
+
+* **OVER()** - одна большая группа, состоящая из всех строк таблицы.
+
+```
+function OVER ([PARTITION BY expression], [ORDER BY expression])
+```
+
+* **PARTITION BY** ~ **GROUP BY**.
+
+* **ORDER BY** используется для определения порядка, в котором строки будут обрабатываться для нарастающего итога.
+
+**Примеры**:
+
+* Сравнение цен продукта со средней в его категории (обычный **GROUP BY** не справится):
+
+```
+SELECT category_id, category_name, product_name, 
+unit_price, AVG(unit_price) OVER (PARTITION BY category_id) AS avg_price
+FROM products
+JOIN categories USING(category_id);
+```
+
+* Вывод нарастающего итога по продуктам заказов:
+
+```
+SELECT order_id, order_date, product_id, customer_id, unit_price AS sub_total,
+		SUM(unit_price) OVER (PARTITION BY order_id ORDER BY product_id)
+FROM orders
+JOIN order_details USING(order_id)
+ORDER BY order_id;
+```
+
+* Вывод общего нарастающего итога
+
+```
+SELECT order_id, order_date, product_id, customer_id, unit_price AS sub_total,
+		SUM(unit_price) OVER (ORDER BY row_id) - делаем нарастающий итог по номерам строк
+FROM (
+	SELECT order_id, order_date, product_id, customer_id, unit_price,
+		ROW_NUMBER() OVER() AS row_id - делаем колонку с номера строк
+	FROM orders
+	JOIN order_details USING(order_id)
+) subquery
+ORDER BY order_id;
+```
+
+* Вывод N записей с условием на оконную функцию:
+
+```
+SELECT *
+FROM (SELECT product_id, product_name, category_id, unit_price, units_in_stock,
+	 ROW_NUMBER() OVER(ORDER BY unit_price) AS nth
+	 FROM products
+	 ) AS sorted_prices
+WHERE nth < 10
+ORDER BY unit_price;
+```
+
+### Функции ранжирования
+
+* **ROW_NUMBER** - присвоение уникального значения строке.
+
+* **RANK** - (с пропусками) присвоение ранга (веса) строкам.
+
+* **DENSE_RANK** - (без пропусков) присвоение ранга (веса) строкам.
+
+* **LAG** - присвоение значения текущей строке, основанное на значении в предыдущей.
+
+* **LEAD** - присвоение значения текущей строке, основанное на значении следующей.
+
+
+* В **LEAD** и **LAG** можно передавать смешение **OFFSET**.
+
+**RANK**:
+
+* Присвоение ранга по уникальности `units_in_stock`:
+
+```
+SELECT product_name, units_in_stock, 
+	RANK() OVER(ORDER BY units_in_stock)
+FROM products;
+```
+
+* Вывод N записей с условием на оконную функцию:
+
+```
+SELECT *
+FROM
+(
+    SELECT order_id, product_id, unit_price, quantity,
+        RANK() OVER(PARTITION BY order_id ORDER BY quantity) AS rank_quant
+    FROM orders
+    JOIN order_details USING(order_id)
+) AS subquery
+WHERE rank_quant <= 5;
+```
+
+**DENSE_RANK**:
+
+* Присвоение ранга по уникальности `units_in_stock`:
+
+```
+SELECT product_name, units_in_stock, 
+	DENSE_RANK() OVER(ORDER BY units_in_stock)
+FROM products;
+``` 
+
+* Присвоение ранга по правилу:
+
+```
+SELECT product_name, units_in_stock, 
+	DENSE_RANK() OVER(
+	    ORDER BY 
+	        CASE
+	            WHEN units_in_stock > 80 THEN 1
+	            WHEN units_in_stock BETWEEN 31 AND 79 THEN 2
+	            ELSE 3
+	        END)
+FROM products;
+``` 
+
+**LAG**:
+
+* Присвоение значения по разнице цены с предыдущей строкой:
+
+```
+SELECT product_name, unit_price, 
+	LAG(unit_price) OVER(ORDER BY unit_price) - unit_price AS price_lag
+FROM products
+ORDER BY unit_price;
+``` 
+
+**LEAD**:
+
+* Присвоение значения по разнице цены с последующей строкой:
+
+```
+SELECT product_name, unit_price, 
+	LEAD(unit_price) OVER(ORDER BY unit_price) - unit_price AS price_lag
+FROM products
+ORDER BY unit_price;
+``` 
+
+* Присвоение значения по разнице цены с последующей строкой и использовании **OFFSET** (пропуск N строк):
+
+```
+SELECT product_name, unit_price, 
+	LEAD(unit_price, 3) OVER(ORDER BY unit_price) - unit_price AS price_lag
+FROM products
+ORDER BY unit_price;
+``` 
