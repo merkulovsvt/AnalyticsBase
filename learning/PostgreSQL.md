@@ -2169,7 +2169,7 @@ SELECT get_season_caller(13);
 
 * Для **явного** преобразования используется:
     * `CAST(expression AS target_type)` - совместимо с **SQL-стандартом**.
-    * `expression:target_type` - несовместимо с **SQL-стандартом**.
+    * `expression::target_type` - несовместимо с **SQL-стандартом**.
 
 **Пример**:
 
@@ -3071,6 +3071,8 @@ WHERE nth < 10
 ORDER BY unit_price;
 ```
 
+---
+
 ### Функции ранжирования
 
 * **ROW_NUMBER** - присвоение уникального значения строке.
@@ -3164,3 +3166,481 @@ SELECT product_name, unit_price,
 FROM products
 ORDER BY unit_price;
 ``` 
+
+---
+
+### Введение в транзакции
+
+* Логическая группа операций.
+
+* Транзакция может быть выполнена **только целиком**.
+
+* Транзакция заканчивается на **COMMIT**.
+
+* Обязательно смотреть на [**Stepik**](https://stepik.org/lesson/530553/?unit=523369).
+
+
+* Классический пример - **банковская транзакция**:
+    * прочесть баланс на счету X
+    * уменьшить баланс на Z денежных средств
+    * сохранить новый баланс счета X
+    * прочесть баланс на счету Y
+    * увеличить баланс на Z денежных средств
+    * сохранить новый баланс счета Y
+
+**Набор требований к транзакционной системе** (**ACID**):
+
+* **Atomicity** (атомарность) - всё или ничего. В случае неполного завершения транзакции необходим откат **ROLLBACK**.
+
+* **Consistency** (согласованность) - система не может провести несогласованные операции. Одновременно гореть зелёный и
+  красный сигнал светофора не могут.
+
+* **Isolation** (изолированность) - параллельные транзакции ждут пока завершится нынешняя. Когда списали с одного счета,
+  но ещё не зачислили на другой, работа с ними извне запрещена.
+
+* **Durability** (долговечность) - если транзакция уже выполнилась, то никакие сбои не вызовут отката действий.
+
+
+* **TCL** - Transaction Control Language
+
+**SQL синтаксис**:
+
+```
+BEGIN [TRANSACTION];
+-logic
+COMMIT; 
+```
+
+**PL/pgSQL синтаксис**:
+
+```
+START TRANSACTION;
+-logic
+END [TRANSACTION];
+```
+
+* Все операции обёрнуты в транзакции в любом случае.
+
+
+* Если по ходу транзакции что-то пошло не так, её можно полностью откатить с помощью **ROLLBACK**:
+    * `ROLLBACK;`
+
+* Внутри транзакции можно делать 'засечки' в важных местах с помощью **SAVEPOINT**:
+    * `SAVEPOINT savepoint_name`
+
+* Если по ходу транзакции что-то пошло не так, её можно откатить к точке с помощью **ROLLBACK TO**:
+    * `ROLLBACK TO savepoint_name`
+
+**Транзакции и функции**:
+
+* Нельзя создавать транзакции в функциях
+
+* Хотя функции неявно исполняются в рамках транзакции
+
+* Чтобы прервать транзакцию изнутри функции - **RAISE EXCEPTION**.
+
+* Если хотим откатить только часть - можно "имитировать" **SAVEPOINT** с помощью **BEGIN** и **EXCEPTION WHEN**.
+
+* Концепция подразумевает, что уровнем изоляции и откатами управляет внешний код (SQL-скрипт или код приложения верхнего
+  уровня)
+
+---
+
+### Изоляция транзакций
+
+* Данные обрабатываемые одной транзакцией изолируются от других на некоторое время, пока первая не завершится.
+
+**Проблемы параллельности**:
+
+* **Грязное чтение** - чтение частичных (uncommitted) изменений.
+
+* **Неповторяемое чтение** - повторное чтение показывает, что данные были изменены после первого чтения.
+
+* **Фантомное чтение** - повторное чтение показывает другой результирующий набор.
+
+* **Аномалия сериализации** - результат параллельно выполняемых транзакций может не согласовываться с результатом этих
+  же транзакций, выполняемых по очереди.
+
+**[Уровни изоляции](https://postgrespro.ru/docs/postgrespro/9.5/transaction-iso#xact-read-committed)**:
+
+* **READ COMMITTED** - уровень изоляции гарантирует, что транзакция видит только те изменения, которые уже были
+  зафиксированы (**COMMIT**) другими транзакциями. Стоит по умолчанию.
+
+* **REPEATABLE READ** - видны только те данные, которые были зафиксированы до начала транзакции, но не видны
+  незафиксированные данные и изменения, произведённые другими транзакциями в процессе выполнения данной транзакции.
+
+* **SERIALIZABLE** - наивысший уровень изоляции. Транзакции в этом режиме полностью изолированы друг от друга, что
+  исключает фантомные чтения и неподтвержденные чтения.
+
+Не исключают само возникновение конфликтов, а просто ловят их, генерируют ошибку и откатывают транзакцию, которая
+наткнулась на конфликтные изменения.
+
+**Синтаксис**:
+
+* В начале транзакции:
+
+```
+{BEGIN|START TRANSACTION} ISOLATION LEVEL level;
+```
+
+* Внутри транзакции:
+
+```
+SET TRANSACTION ISOLATION LEVEL level;
+```
+
+---
+
+### Транзакции на практике
+
+* Элементарная транзакция:
+
+```
+BEGIN;
+
+WITH prod_updates AS (
+	UPDATE products
+	SET discontinued = 1
+	WHERE units_in_stock < 10
+	RETURNING product_id
+)
+SELECT * INTO last_orders_on_discountinued
+FROM order_details
+WHERE product_id IN (SELECT product_id FROM prod_updates);
+
+COMMIT; 
+
+SELECT * FROM last_orders_on_discountinued;
+```
+
+* Пример прерывания транзакции:
+
+```
+BEGIN;
+
+WITH prod_updates AS (
+	UPDATE products
+	SET discontinued = 1
+	WHERE units_in_stock < 10
+	RETURNING product_id
+)
+SELECT * INTO last_orders_on_discountinued
+FROM order_details
+WHERE product_id IN (SELECT product_id FROM prod_updates);
+
+DROP TABLE zaza; - это прерывает транзакцию, тк возникает ошибка
+
+COMMIT; - есди выделить и вызвать, то в случае прерывания транзакции произойдёт ROLLBACK.
+```
+
+* Пример с **SAVEPOINT** и заданием уровня изоляции:
+
+```
+START TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+DROP TABLE IF EXISTS last_orders_on_discountinued;
+
+WITH prod_updates AS (
+	UPDATE products
+	SET discontinued = 1
+	WHERE units_in_stock < 10
+	RETURNING product_id
+)
+SELECT * INTO last_orders_on_discountinued
+FROM order_details
+WHERE product_id IN (SELECT product_id FROM prod_updates);
+
+SAVEPOINT backup;
+
+DELETE FROM order_details - этот блок был пропущен из-за ROLLBACK
+WHERE product_id IN (SELECT product_id FROM last_orders_on_discountinued);
+
+ROLLBACK TO backup;
+
+UPDATE order_details - а этот блок выполнился
+SET quantity = 0 
+WHERE product_id IN (SELECT product_id FROM last_orders_on_discountinued);
+
+END TRANSACTION;
+```
+
+---
+
+### Триггеры
+
+* Объекты, которые назначают действия на какие-нибудь события.
+
+
+* Триггеры могут реагировать как на построчное изменение (множественное срабатывание), так и единожды на все изменения
+  сразу.
+
+* Сценарии использования триггеров:
+    * Аудит таблиц - проверка данных
+    * Дополнительные действия в ответ на изменения
+
+**Синтаксис**:
+
+* Создание построчного триггера:
+
+```
+CREATE TRIGGER trigger_name {BEFORE|AFTER} {INSERT|UPDATE|DELETE} ON table_name
+FOR EACH ROW EXECUTE PROCEDURE function_name();
+```
+
+Условие может включать в себя ещё, например, **OR**:
+`BEFORE INSERT OR UPDATE`
+
+* Создание триггера на утверждения (по всей операции):
+
+```
+CREATE TRIGGER trigger_name {BEFORE|AFTER} {INSERT|UPDATE|DELETE} ON table_name
+REFERENCING {NEW|OLD} TABLE AS ref_table_name - референсную таблицу необходимо задекларировать
+FOR EACH STATEMENT EXECUTE PROCEDURE function_name();
+```
+
+* Удаление триггера:
+
+```
+DROP TRIGGER [IF EXISTS] trigger_name;
+```
+
+* Переименование триггера:
+
+```
+ALTER TRIGGER trigger_name ON table_name
+RENAME TO new_trigger_name;
+```
+
+* Отключение триггера:
+
+```
+ALTER TABLE table_name
+DISABLE TRIGGER trigger_name;
+```
+
+* Отключение всех триггеров на таблице:
+
+```
+ALTER TABLE table_name
+DISABLE TRIGGER ALL;
+```
+
+**Функции, привязанные к триггеру**:
+
+* Возвращает либо **NULL**, либо запись, соответствующую структуре таблице, на которую будет вешаться триггер.
+
+* Через аргумент **NEW** есть доступ к вставленным и модифицированным строкам (**INSERT**/**UPDATE** триггеры).
+
+* Через аргумент **OLD** есть доступ к вставленным и удаленным строкам (**UPDATE**/**DELETE** триггеры).
+
+
+* Создание такой функции:
+
+```
+CREATE [OR REPLACE] func_name() RETURNS trigger AS $$
+BEGIN
+--logic
+END;
+$$ LANGUAGE plpgsql;
+```
+
+В функции доступна переменная **TG_OP**, хранящая тип операции (**INSERT**, **UPDATE**, **DELETE**).
+
+**Возврат из триггеров**:
+
+* Если **BEFORE-триггер** возвращает **NULL**, то сама операция и **AFTER-триггеры** будут отменены.
+
+
+* **BEFORE-триггер** может изменить строку (**INSERT**, **UPDATE**) через **NEW** и тогда операция и **AFTER-триггеры**
+  будут работать с измененной строкой.
+
+
+* Если **BEFORE-триггер** "не хочет" изменять строку, то надо просто вернуть **NEW**.
+
+
+* В случае **BEFORE-триггера** реагирующего на **DELETE**, возврат не имеет значения (кроме **NULL**: отменяет
+  **DELETE**).
+
+
+* **NEW** = **null** при **DELETE**, так что если **BEFORE-триггер** хочет дать ход **DELETE**, надо вернуть **OLD**.
+
+
+* Возвращаемое значение из построчного **AFTER-триггера** (или и из **BEFORE**, и из **AFTER** триггеров на утверждения)
+  игнорируется => можно возвращать **NULL**.
+
+
+* Если построчный **AFTER-триггер** или триггер на утверждение хочет отменить операцию => **RAISE EXCEPTION**.
+
+**Примеры построчных триггеров**:
+
+```
+ALTER TABLE customers
+ADD COLUMN last_updated timestamp;
+
+CREATE OR REPLACE FUNCTION track_changes_on_customers() RETURNS trigger AS $$
+BEGIN
+	NEW.last_updated = now();
+	RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS customers_timestamp ON customers;
+CREATE TRIGGER customers_timestamp BEFORE INSERT OR UPDATE ON customers
+FOR EACH ROW EXECUTE PROCEDURE track_changes_on_customers();
+```
+
+```
+ALTER TABLE employees
+ADD COLUMN user_changed text;
+
+CREATE OR REPLACE FUNCTION track_changes_on_employees() RETURNS trigger AS $$
+BEGIN
+	NEW.user_changed = session_user;
+	RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS employee_user_change ON employees;
+CREATE TRIGGER employee_user_change BEFORE INSERT OR UPDATE ON employees
+FOR EACH ROW EXECUTE PROCEDURE track_changes_on_employees();
+```
+
+**Примеры триггеров на утверждения**:
+
+```
+DROP TABLE IF EXISTS products_audit;
+
+CREATE TABLE products_audit
+(	
+	op char(1) NOT NULL,
+	user_changed text NOT NULL,
+	time_stamp timestamp NOT NULL,
+	
+    product_id smallint NOT NULL,
+    product_name varchar(40) NOT NULL,
+    supplier_id smallint,
+    categoty_id smallint,
+    quantuty_perf_unit varchar(20),
+    unit_price real,
+    units_in_stock smallint,
+    units_on_order smallint,
+    reorder_level smallint,
+    discontinued integer NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION build_audit_products() RETURNS trigger AS $$
+BEGIN
+	IF TG_OP = 'INSERT' THEN
+		INSERT INTO products_audit
+		SELECT 'I', session_user, now(), * 
+		FROM new_table;
+	ELSEIF TG_OP = 'UPDATE' THEN
+		INSERT INTO products_audit
+		SELECT 'U', session_user, now(), * 
+		FROM new_table;
+	ELSEIF TG_OP = 'DELETE' THEN
+		INSERT INTO products_audit
+		SELECT 'D', session_user, now(), * 
+		FROM old_table;
+	END IF;
+	RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+
+DROP TRIGGER IF EXISTS audit_products_insert ON products;
+
+CREATE TRIGGER audit_products_insert AFTER INSERT ON products
+REFERENCING NEW TABLE AS new_table
+FOR EACH STATEMENT EXECUTE PROCEDURE build_audit_products();
+
+DROP TRIGGER IF EXISTS audit_products_update ON products;
+
+CREATE TRIGGER audit_products_update AFTER UPDATE ON products
+REFERENCING NEW TABLE AS new_table
+FOR EACH STATEMENT EXECUTE PROCEDURE build_audit_products();
+
+DROP TRIGGER IF EXISTS audit_products_delete ON products;
+
+CREATE TRIGGER audit_products_delete AFTER DELETE ON products
+REFERENCING OLD TABLE AS old_table
+FOR EACH STATEMENT EXECUTE PROCEDURE build_audit_products();
+```
+
+---
+
+### Безопасность
+
+* **Роль** (группа) - совокупность разрешений и запретов на доступ к БД и её объектам. Создаются на уровне экземпляра
+  сервера.
+
+* В **PostgreSQL** пользователь - роль с паролем => на роль с паролем назначают роль с доступами.
+
+* **postgres** - роль, создаваемая по умолчанию, и единственная имеющая привилегии **SUPERUSER**.
+
+* Обязательно смотреть на [**Stepik**](https://stepik.org/lesson/530605/step/1?unit=523421).
+
+**Уровни безопасности**:
+
+1. **Экземпляра** - аутентификация, создание БД, управление безопасностью, ...
+
+2. **Базы данных** - подключение к БД, создание в ней ролей, ...
+
+3. **Схемы** - управление схемами (создание, удаление).
+
+4. **Таблицы** - CRUD-операции (**CREATE** **READ** **UPDATE** **DELETE**) над таблицами.
+
+5. **Колонки** - операции над конкретной колонкой конкретной таблицы.
+
+6. **Строки** - операции над строками.
+
+**Создание роли и серверные привилегии**:
+
+* Вывод всех ролей на инстанции сервере:
+
+```
+SELECT role_name
+FROM pg_roles;
+```
+
+* Создание роли:
+
+```
+CREATE ROLE role_name [[NO]{LOGIN|SUPERUSER|CREATEDB|CREATEROLE|REPLICATION}];
+```
+
+По умолчанию у всех привилегий стоит **NO** и роль является бесправной.
+
+* Создание пользователя:
+
+```
+CREATE USER user_name; - без пароля
+```
+
+```
+CREATE USER user_name WITH PASSWORD *****; - с паролем
+```
+
+* Доступ к таблице:
+
+```
+GRANT {SELECT|INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER} ON table_name TO role; - к конкретной таблице
+```
+
+```
+GRANT {SELECT|INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER} ON ALL TABLES IN SCHEMA schema_name TO role; - ко всем таблицам схемы
+```
+
+* Доступ к колонкам:
+
+```
+GRANT {SELECT|INSERT|UPDATE|REFERENCES} (columns) ON table_name TO role;
+```
+
+* Удаление роли:
+
+```
+DROP ROLE [IF EXISTS] role_name;
+```
+
+---
