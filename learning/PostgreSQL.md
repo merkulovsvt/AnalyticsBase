@@ -266,7 +266,7 @@ WHERE column1_name > 123 - условие
 * `WHERE column_name BETWEEN data1 and data2` - оператор предполагает включение (нестрого).
 
 
-* `WHERE column_name == data1 OR column_name == data2 OR ...` == `WHERE column_name IN (data1, data2, ...)`
+* `WHERE column_name = data1 OR column_name = data2 OR ...` == `WHERE column_name IN (data1, data2, ...)`
 
 
 * `WHERE column_name NOT IN (data1, data2, ...)`
@@ -594,8 +594,7 @@ JOIN table2_name [AS] new_tb2 ON new_tb1.id = new_tb2.id
 ```
 SELECT company_name
 FROM suppliers
-WHERE country IS IN (SELECT DISTINCT country FROM customers) - это подзапрос
-	             
+WHERE country IN (SELECT DISTINCT country FROM customers) - это подзапрос	             
 ```
 
 Можно заменить **JOIN**ом:
