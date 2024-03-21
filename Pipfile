@@ -8,6 +8,11 @@ pandas = "*"
 jupyter = "*"
 numpy = "*"
 scipy = "*"
+matplotlib = "*"
+seaborn = "*"
+scikit-learn = "*"
+sqlalchemy = "*"
+psycopg2 = "*"
 
 [dev-packages]
 
